@@ -1,0 +1,11 @@
+name: Template Upgrader
+version: 0.9
+key: TemplateUpgrader
+id: TemplateUpgrader
+description: "This plugin upgrades your templates."
+author_link: http://endevver.com
+author_name: "Jay Allen, Endevver Consulting"
+
+tag_upgrade_handlers:
+    setvar: $TemplateUpgrader::TemplateUpgrader::Handlers::hdlr_setvar
+    include: $TemplateUpgrader::TemplateUpgrader::Handlers::hdlr_include
