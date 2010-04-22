@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
-BEGIN { unshift @INC, qw( lib extlib ) }
+BEGIN { unshift @INC, qw( lib extlib ../lib ../extlib ) }
 use MT::Bootstrap::CLI App => 'TemplateUpgrader::Tool::Upgrade';
 
 __END__

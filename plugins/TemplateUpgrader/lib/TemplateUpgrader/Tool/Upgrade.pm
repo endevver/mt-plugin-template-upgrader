@@ -4,30 +4,34 @@ use strict; use warnings; use Carp; use Data::Dumper;
 use Getopt::Long qw( :config auto_version auto_help );
 use Pod::Usage;
 
-use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
-###l4p our $logger = MT::Log::Log4perl->new();
-
+$| = 1;
 use vars qw( $VERSION @ISA $timer );
 $VERSION = '0.1';
 
-# Structure of a node:
-#   [0] = tag name
-#   [1] = attribute hashref
-#   [2] = contained tokens
-#   [3] = template text
-#   [4] = attributes arrayref
-#   [5] = parent array reference
-#   [6] = containing template
-
 use base qw( MT::App::CLI );
+our $handlers;
+our @BUNDLED_TAG_PLUGINS = qw(
+    Community.pack
+    Commercial.pack
+    ActionStreams
+    CommunityActionStreams
+    FacebookCommenters/plugin.pl
+    Markdown/Markdown.pl
+    Markdown/SmartyPants.pl
+    MultiBlog/multiblog.pl
+    Textile/textile2.pl
+    TypePadAntiSpam/TypePadAntiSpam.pl
+);
 
-$| = 1;
+use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
+###l4p our $logger = MT::Log::Log4perl->new();
 
-sub usage { '( --blog BLOG | --template TEMPLATE ) [ --debug ]' }
+sub usage { '( --blog BLOG | --template TEMPLATE ) [ --debug ] [ --analyze ]' }
 
 sub option_spec {
     return (
-        'blog|b=s', 'template|tmpl|t=s', 'debug|d',
+        'blog|b=s', 'template|tmpl|t=s',
+        'analyze|a', 'upgrade|u', 'debug|d',
         $_[0]->SUPER::option_spec()
     );
 }
@@ -38,11 +42,50 @@ sub help {
     };
 }
 
+sub initialize_default_handler {
+    my $app = shift;
+
+    return unless $app->param('analyze');
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+
+    # my $plugin   = MT->component('TemplateUpgrader');
+    $handlers = $app->registry('tag_upgrade_handlers') || {};
+
+    my %plugin_tags;
+    foreach my $sig ( keys %MT::Plugins ) {
+        next if grep { $_ eq $sig } @BUNDLED_TAG_PLUGINS;
+        my $plugin = $MT::Plugins{$sig}{object} or next;
+        my $tags   = $plugin->registry('tags') or next;
+        my @tags;
+        foreach my $type ( qw( function block ) ) {
+            next unless $tags->{$type};
+            push @tags, grep { $_ ne 'plugin'} # Skip plugin and
+                        map {                  # Remove
+                            s{\?$}{};          #  conditional 
+                            $_                 #   marker
+                        }
+                        keys %{ $tags->{$type} };
+        }
+        push @{ $plugin_tags{$sig} }, @tags;
+        $handlers->{$_} =
+            '$TemplateUpgrader::TemplateUpgrader::Handlers::default_hdlr'
+                foreach @tags;
+    }
+    $app->registry('tag_upgrade_handlers', $handlers);
+    ###l4p if ( $logger->is_debug() ) {
+    ###l4p     $logger->debug("Tags: ", l4mtdump(\%plugin_tags));
+    ###l4p     $logger->debug('$handlers: ', l4mtdump($handlers));
+    ###l4p }
+}
+
+
 sub mode_default {
     my $app      = shift;
     my $blog     = $app->param('blog');
     my $template = $app->param('template');
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+
+    $app->param('analyze') and $app->initialize_default_handler();
 
     require MT::Util::ReqTimer;
     $timer = MT::Util::ReqTimer->new( join('-', __PACKAGE__, $$) );
@@ -55,9 +98,8 @@ sub mode_default {
     my $tmpl_iter;
 
     # Load the blog if blog parameter is given
-    if ( defined $blog ) {
+    if ( defined $blog and ! ref $blog) {
         $blog = $app->load_by_name_or_id('blog', $blog, 1);
-        
     }
 
     # If no template parameter is given, we 
@@ -115,15 +157,17 @@ sub mode_default {
 }
 
 sub upgrade_template {
-    my ( $self, $tmpl ) = @_;
+    my ( $app, $tmpl ) = @_;
     # my $ctx           = $tmpl->context();
-    my $app             = MT->instance;
     my $orig            = $tmpl->text || '';
-    my $handlers        = $app->registry('tag_upgrade_handlers') || {};
+    $handlers         ||= $app->registry('tag_upgrade_handlers') || {};
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    # $logger->debug('$handlers: ', l4mtdump($handlers));
 
     while ( my ( $tag, $code ) = each %$handlers ) {
-        $code     = $app->handler_to_coderef($code) unless ref($code) eq 'CODE';
+        $code = $app->handler_to_coderef($code) 
+            unless ref($code) eq 'CODE';
+        $logger->debug('Handling tag: '.$tag);
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
         $code->($_) foreach @$nodes;
     }
@@ -138,7 +182,7 @@ sub upgrade_template {
         return 0;
     }
 
-    ###l4p if ( $logger->is_debug() ) {
+    ###l4p if ( $app->param('debug') && $logger->is_debug() ) {
     ###l4p      $logger->debug('Template "'.$tmpl->name.'" $orig template: ', $orig);
     ###l4p      $logger->debug('Template "'.$tmpl->name.'" $new template: ', $new);
     ###l4p      require HTML::Diff;
@@ -159,7 +203,8 @@ sub upgrade_template {
         printf "TEMPLATE DIFF:\n%s\n",
             Dumper(html_word_diff($orig, $new));
     }
-    else {
+
+    if ( $app->param('upgrade') ) {
         $tmpl->save_backup();
 
         $tmpl->text( $new );
@@ -239,6 +284,10 @@ sub save_backup {
 
 package MT::Template::Node;
 
+sub NODE_TEXT ()     { return MT::Template::NODE_TEXT()     }
+sub NODE_BLOCK ()    { return MT::Template::NODE_BLOCK()    }
+sub NODE_FUNCTION () { return MT::Template::NODE_FUNCTION() }
+
 sub tagName {
     my $node = shift;
     return undef if ref($node) ne 'MT::Template::Node'
@@ -259,3 +308,15 @@ sub prependAttribute {
 }
 
 1;
+
+__END__
+
+# Structure of a node:
+#   [0] = tag name
+#   [1] = attribute hashref
+#   [2] = contained tokens
+#   [3] = template text
+#   [4] = attributes arrayref
+#   [5] = parent array reference
+#   [6] = containing template
+
