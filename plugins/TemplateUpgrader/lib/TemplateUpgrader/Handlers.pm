@@ -13,47 +13,43 @@ sub default_hdlr {
     require MT::Log::Log4perl;
     $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     my $attrs = $node->[1];
-    # $logger->debug('$node->[1]: ', l4mtdump($node->[1]));
-    my $tmpl = $node->template;
-    # $logger->debug('$tmpl: ', l4mtdump($tmpl));
-    my $blog = $tmpl->blog;
-    # $logger->debug('$blog: ', l4mtdump($blog));
+    my $tmpl  = $node->template;
+    my $blog  = $tmpl->blog;
+    my $tag   = $node->tagName;
+    # $logger->debug('$blog: ', l4mtdump({ blog => $blog, tmpl => $tmpl, node1 => $node->[1] }));
     $logger->info(
-          sprintf('PLUGIN TAG (%s, %s): ', $tmpl->id, $blog->id)
-        . join( " ",
-                $node->tagName,
-                map { join('=', $_, $attrs->{$_}) }
-                    keys %$attrs
-          )
+          sprintf('PLUGIN TAG %s (%s, %s): ', $tag, $blog->id, $tmpl->id)
+        . join( " ", $tag, map { join('=', $_, $attrs->{$_}) } keys %$attrs )
     );
 }
 
-# This demonstrates a tag name change
-#
-# sub hdlr_setvar {
-#     my $node = shift;
-#     $node->tagName('Var');
-# }
-
-
-# This demonstrates modification of order-sensitive attributes based on a condition
-#
-# sub hdlr_include {
-#     my $node = shift;
-# 
-#     # If we're including a module...
-#     if ( defined $node->getAttribute('module') ) {
-# 
-#         # Set the woohoo attribute
-#         $node->setAttribute('woohoo', 1);
-# 
-#         # Set the ordering of the attributes, if needed
-#         $node->[4] = [
-#                         [ 'module' => $node->getAttribute('module') ],
-#                         [ 'woohoo' => $node->getAttribute('woohoo') ]
-#                     ];
-#     }
-# }
-
-
 1;
+
+__END__
+
+# This demonstrates a tag name change
+sub hdlr_setvar {
+    my $node = shift;
+    $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    $node->tagName('Var');
+}
+
+
+# This demonstrates modification of order-sensitive
+# attributes based on a condition
+sub hdlr_include {
+    my $node = shift;
+
+    # If we're including a module...
+    if ( defined $node->getAttribute('module') ) {
+
+        # Set the woohoo attribute
+        $node->setAttribute('woohoo', 1);
+
+        # Set the ordering of the attributes, if needed
+        $node->[4] = [
+                        [ 'module' => $node->getAttribute('module') ],
+                        [ 'woohoo' => $node->getAttribute('woohoo') ]
+                    ];
+    }
+}

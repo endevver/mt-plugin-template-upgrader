@@ -26,6 +26,8 @@ our @BUNDLED_TAG_PLUGINS = qw(
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
+use TemplateUpgrader;
+
 sub usage { '( --blog BLOG | --template TEMPLATE ) [ --debug ] [ --analyze ]' }
 
 sub option_spec {
@@ -42,6 +44,22 @@ sub help {
     };
 }
 
+sub tags_from_plugin {
+    my ($app, $plugin) = @_;
+    my $tags   = $plugin->registry('tags') || {};
+    my @tags;
+    foreach my $type ( qw( function block ) ) {
+        next unless $tags->{$type};
+        push @tags, grep { $_ ne 'plugin'} # Skip plugin and
+                    map {                  # Remove
+                        s{\?$}{};          #  conditional 
+                        $_                 #   marker
+                    }
+                    keys %{ $tags->{$type} };
+    }
+    return @tags;
+}
+
 sub initialize_default_handler {
     my $app = shift;
 
@@ -55,17 +73,7 @@ sub initialize_default_handler {
     foreach my $sig ( keys %MT::Plugins ) {
         next if grep { $_ eq $sig } @BUNDLED_TAG_PLUGINS;
         my $plugin = $MT::Plugins{$sig}{object} or next;
-        my $tags   = $plugin->registry('tags') or next;
-        my @tags;
-        foreach my $type ( qw( function block ) ) {
-            next unless $tags->{$type};
-            push @tags, grep { $_ ne 'plugin'} # Skip plugin and
-                        map {                  # Remove
-                            s{\?$}{};          #  conditional 
-                            $_                 #   marker
-                        }
-                        keys %{ $tags->{$type} };
-        }
+        my @tags   = $app->tags_from_plugin( $plugin ) or next;
         push @{ $plugin_tags{$sig} }, @tags;
         $handlers->{$_} =
             '$TemplateUpgrader::TemplateUpgrader::Handlers::default_hdlr'
@@ -157,25 +165,16 @@ sub mode_default {
 }
 
 sub upgrade_template {
-    my ( $app, $tmpl ) = @_;
-    # my $ctx           = $tmpl->context();
-    my $orig            = $tmpl->text || '';
-    $handlers         ||= $app->registry('tag_upgrade_handlers') || {};
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    # $logger->debug('$handlers: ', l4mtdump($handlers));
+    my $app     = shift;
+    my $tmpl    = shift;
+    my $orig    = $tmpl->text || '';
+    $handlers ||= $app->registry('tag_upgrade_handlers') || {};
 
-    while ( my ( $tag, $code ) = each %$handlers ) {
-        $code = $app->handler_to_coderef($code) 
-            unless ref($code) eq 'CODE';
-        $logger->debug('Handling tag: '.$tag);
-        my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
-        $code->($_) foreach @$nodes;
-    }
+    my $upgrader = TemplateUpgrader->new({ handlers => $handlers });
+    $tmpl        = $upgrader->upgrade( $tmpl );
 
-    $tmpl->reset_markers;
-    $tmpl->{reflow_flag} = 1;
-    my $new = reflow($tmpl) || '';
-    
+    my $new = $tmpl->text || '';
+
     if ( $new eq $orig ) {
         printf "%s template \"%s\" (ID:%s) not modified.\n",
             ucfirst($tmpl->type), $tmpl->name, $tmpl->id;
@@ -189,7 +188,7 @@ sub upgrade_template {
     ###l4p      import HTML::Diff qw(html_word_diff);
     ###l4p      $logger->debug(
     ###l4p          'Template diff for '.$tmpl->name.' (ID:'.$tmpl->id.'): ',
-    ###l4p          l4mtdump(html_word_diff($orig, $new))
+    ###l4p          l4mtdump(html_word_diff( $orig, $new ))
     ###l4p      );
     ###l4p }
 
@@ -215,96 +214,6 @@ sub upgrade_template {
     }
 
     return 1;
-}
-
-sub reflow {
-    my $tmpl = shift;
-    my ($tokens) = @_;
-    $tokens ||= $tmpl->tokens;
-
-    # reconstitute text of template based on tokens
-    my $str = '';
-    foreach my $token (@$tokens) {
-        if ($token->[0] eq 'TEXT') {
-            $str .= $token->[1];
-        } else {
-            my $tag = $token->[0];
-            $str .= '<mt:' . $tag;
-            if (my $attrs = $token->[4]) {
-                my $attrh = $token->[1];
-                foreach my $a (@$attrs) {
-                    delete $attrh->{$a->[0]};
-                    my $v = $a->[1];
-                    $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
-                    $str .= ' ' . $a->[0] . '=' . $v;
-                }
-                foreach my $a (keys %$attrh) {
-                    my $v = $attrh->{$a};
-                    $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
-                    $str .= ' ' . $a . '=' . $v;
-                }
-            }
-            $str .= '>';
-            if ($token->[2]) {
-                # container tag
-                $str .= reflow( $tmpl, $token->[2] );
-                # $str .= $tmpl->reflow( $token->[2] );
-                $str .= '</mt:' . $tag . '>';
-            }
-        }
-    }
-    return $str;
-}
-
-package MT::Template;
-
-sub save_backup {
-    my $tmpl = shift;
-    my $blog = $tmpl->blog;
-    my $t = time;
-    my @ts = MT::Util::offset_time_list( $t, ( $blog ? $blog->id : undef ) );
-    my $ts = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $ts[5] + 1900,
-      $ts[4] + 1, @ts[ 3, 2, 1, 0 ];
-    my $backup = $tmpl->clone;
-    delete $backup->{column_values}->{id}; # make sure we don't overwrite original
-    delete $backup->{changed_cols}->{id};
-    $backup->type('backup');
-    $backup->name(
-          $backup->name 
-        . MT->instance->translate( ' (TemplateUpgrader backup from [_1]) [_2]', 
-                            $ts, $tmpl->type )
-    );
-    $backup->outfile('');
-    $backup->linked_file( undef );
-    $backup->identifier(undef);
-    $backup->rebuild_me(0);
-    $backup->build_dynamic(0);
-    $backup->save;
-}
-
-package MT::Template::Node;
-
-sub NODE_TEXT ()     { return MT::Template::NODE_TEXT()     }
-sub NODE_BLOCK ()    { return MT::Template::NODE_BLOCK()    }
-sub NODE_FUNCTION () { return MT::Template::NODE_FUNCTION() }
-
-sub tagName {
-    my $node = shift;
-    return undef if ref($node) ne 'MT::Template::Node'
-                 or $node->nodeType == MT::Template::NODE_TEXT();
-    if ( @_ ) {
-        $node->[0] = shift;
-        $node->[0] = $node->nodeName(); # For normalization
-    }
-    return $node->[0];
-}
-
-sub appendAttribute {
-    
-}
-
-sub prependAttribute {
-    
 }
 
 1;
