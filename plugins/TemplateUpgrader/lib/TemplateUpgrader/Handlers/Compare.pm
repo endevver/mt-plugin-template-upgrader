@@ -29,34 +29,28 @@ our %reverse_tags = (
     iflessorequal    => 'ifgreaterorequal',
 );
     
-#
-# Possible attribute values
-#
-#   A string
-#   [MTFoo] - Interpolated MT template tag
-#   [MTGetVar name='showed_already']
-#
-sub hdlr_if_equal {
-    my $node = shift;
+BEGIN {
+    no strict 'refs';
+    my @methods = qw( if_equal     if_less    if_greater_or_equal 
+                      if_not_equal if_greater if_less_or_equal   );
+    *${\"hdlr_$_"} = \&hdlr_default foreach @methods;
+}
+
+sub hdlr_default {
+    my ($node, $tag) = @_;
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    return unless process_attributes( $node );
-    $node->tagName('if');
+    process_attributes( $node ) && $node->tagName( $tag || 'If' );
     ###l4p $logger->debug('Finished an IfEqual');
     
+}
 
-}
-sub hdlr_if_not_equal {
-    my $node = shift;
-    
-}
-sub hdlr_if_greater_or_equal {
-    
-    my $node = shift;
-}
-sub hdlr_if_less_or_equal {
-    my $node = shift;
-    
-}
+###
+### TAGS WE DON'T HANDLE
+###
+sub ifnotbetween { }
+sub ifbetween { }
+sub ifbetweenexclusive { }
+
 
 sub process_attributes {
     my $node      = shift;
@@ -218,52 +212,6 @@ sub process_attributes {
     $logger->debug('$node FINAL: ', l4mtdump($node));
     
     1;
-}
-
-sub hdlr_if_less {
-    my $node = shift;
-    
-}
-sub hdlr_if_greater {
-    my $node = shift;
-    
-}
-sub hdlr_if_not_between {
-    my $node = shift;
-    
-}
-sub hdlr_if_between {
-    my $node = shift;
-    
-}
-sub hdlr_if_between_exclusive {
-    my $node = shift;
-    
-}
-
-# Rewrite GetVar to Var
-sub hdlr_get_var {
-    my $node = shift;
-    $node->tagName('Var');
-}
-
-sub hdlr_if_one {
-    my $node = shift;
-    $node->tagName('If');
-    $node->setAttribute('eq', 1);
-}
-
-sub hdlr_unless_zero {
-    my $node = shift;
-    $node->tagName('IfNonZero');
-}
-
-sub hdlr_unless_empty {
-    my $node = shift;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    # $logger->debug('$node BEFORE: ', l4mtdump($node));
-    $node->tagName('IfNonEmpty');
-    $logger->debug('$node AFTER: ', l4mtdump($node));
 }
 
 # This demonstrates modification of order-sensitive attributes based on a condition

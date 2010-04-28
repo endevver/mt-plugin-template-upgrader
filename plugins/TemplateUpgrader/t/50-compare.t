@@ -1,20 +1,13 @@
 #!/usr/bin/perl -w
-
 package TemplateUpgrader::Test::Compare;
 
 use strict;
 use lib qw( t/lib   plugins/TemplateUpgrader/lib
             plugins/TemplateUpgrader/extlib lib extlib );
-# use lib 't/lib', 'extlib', 'lib', '../lib', '../extlib';
 
 use IPC::Open2;
 use SelfLoader;
 use Data::Dumper;
-
-# BEGIN {
-#     $ENV{MT_CONFIG} = 'mysql-test.cfg';
-# }
-
 $| = 1;
 
 # use MT::Test qw(:db :data);
@@ -30,57 +23,12 @@ use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 
 require POSIX;
 
-my $mt = MT->new();
+my $num = 1;
 
-# my $blog_name_tmpl = MT::Template->load({name => "blog-name", blog_id => 1});
-# ok($blog_name_tmpl, "'blog-name' template found");
-# 
+my $mt  = MT->new();
 my $ctx = MT::Template::Context->new;
-# my $blog = MT::Blog->load(1);
-# ok($blog, "Test blog loaded");
-# $ctx->stash('blog', $blog);
-# $ctx->stash('blog_id', $blog->id);
 $ctx->stash('builder', MT::Builder->new);
 
-# my $entry  = MT::Entry->load( 1 );
-# ok($entry, "Test entry loaded");
-# 
-# # entry we want to capture is dated: 19780131074500
-# my $tsdiff = time - ts2epoch($blog, '19780131074500');
-# my $daysdiff = int($tsdiff / (60 * 60 * 24));
-# my %const = (
-#     CFG_FILE => MT->instance->{cfg_file},
-#     VERSION_ID => MT->instance->version_id,
-#     CURRENT_WORKING_DIRECTORY => MT->instance->server_path,
-#     STATIC_CONSTANT => '1',
-#     DYNAMIC_CONSTANT => '',
-#     DAYS_CONSTANT1 => $daysdiff + 1,
-#     DAYS_CONSTANT2 => $daysdiff - 1,
-#     CURRENT_YEAR => POSIX::strftime("%Y", localtime),
-#     CURRENT_MONTH => POSIX::strftime("%m", localtime),
-# );
-# 
-# $test_json =~ s/\Q$_\E/$const{$_}/g for keys %const;
-# $test_suite = $json->decode($test_json);
-# 
-# $ctx->{current_timestamp} = '20040816135142';
-# 
-# my $num = 1;
-# foreach my $test_item (@$test_suite) {
-#     unless ($test_item->{r}) {
-#         pass("perl test skip " . $num++);
-#         next;
-#     }
-#     local $ctx->{__stash}{entry} = $entry if $test_item->{t} =~ m/<MTEntry/;
-#     $ctx->{__stash}{entry} = undef if $test_item->{t} =~ m/MTComments|MTPings/;
-#     $ctx->{__stash}{entries} = undef if $test_item->{t} =~ m/MTEntries|MTPages/;
-#     $ctx->stash('comment', undef);
-#     my $result = build($ctx, $test_item->{t});
-#     is($result, $test_item->{e}, "perl test " . $num++);
-# }
-# 
-
-my $num = 1;
 while ( defined( my $test = get_test() ) ) {
     # print STDERR Dumper($test);
     unless ($test->{r}) {
@@ -120,49 +68,31 @@ while ( defined( my $test = get_test() ) ) {
     }
 }
 
-sub build {
-    my($ctx, $markup) = @_;
-    my $b = $ctx->stash('builder');
-    my $tokens = $b->compile($ctx, $markup);
-    print('# -- error compiling: ' . $b->errstr), return undef
-        unless defined $tokens;
-    my $res = $b->build($ctx, $tokens);
-    print '# -- error building: ' . ($b->errstr ? $b->errstr : '') . "\n"
-        unless defined $res;
-    return $res;
-}
+# sub build {
+#     my($ctx, $markup) = @_;
+#     my $b = $ctx->stash('builder');
+#     my $tokens = $b->compile($ctx, $markup);
+#     print('# -- error compiling: ' . $b->errstr), return undef
+#         unless defined $tokens;
+#     my $res = $b->build($ctx, $tokens);
+#     print '# -- error building: ' . ($b->errstr ? $b->errstr : '') . "\n"
+#         unless defined $res;
+#     return $res;
+# }
 
-my $markup =<<EOF;
-<mt:SetVarBlock name="woottang">
-    Wheeeee!
-</mt:SetVarBlock>
-EOF
+# my $markup =<<EOF;
+# <mt:SetVarBlock name="woottang">
+#     Wheeeee!
+# </mt:SetVarBlock>
+# EOF
 
 sub transform {
     my ( $ctx, $markup ) = @_;
-    $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     my $handlers ||= MT->registry('tag_upgrade_handlers') || {};
     use TemplateUpgrader;
     my $upgrader = TemplateUpgrader->new({ handlers => $handlers });
-# my $b = $ctx->stash('builder');
-# my $tokens = $b->compile($ctx, $markup);
-# $logger->debug('$tokens: ', l4mtdump($tokens));
-
     return $upgrader->upgrade( ref $markup ? $markup : \$markup );
-
-#     return $tokens->[6];
-# upgrade_template
-# my $upgrader = TemplateUpgrader->new({ handlers => $handlers });
-# $tmpl        = $upgrader->upgrade( $tmpl );
-# 
-# my $new = $tmpl->text || '';
-# 
-# if ( $new eq $orig ) {
-#     printf "%s template \"%s\" (ID:%s) not modified.\n",
-#         ucfirst($tmpl->type), $tmpl->name, $tmpl->id;
-#     return 0;
-# }
-
 }
 
 exit;
@@ -189,19 +119,94 @@ __DATA__
                 "e" : "<mt:ifnonempty name=\"hello\">1</mt:ifnonempty>"},   #6
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"VAL1\" b=\"VAL2\">yay!</MTIfEqual>",
-                "e" : "<mt:IfEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfEqual>"},       #7
+                "e" : "<mt:IfEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfEqual>"}, #7
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfEqual>",
                 "e" : "<mt:if name=\"spanky\" eq=\"VAL2\">yay!</mt:if>"},   #8
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfEqual>",
-                "e" : "<mt:if name=\"pooky\" eq=\"VAL0\">yay!</mt:if>"}, #9
+                "e" : "<mt:if name=\"pooky\" eq=\"VAL0\">yay!</mt:if>"},    #9
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfEqual>",
                 "e" : "<mt:if tag=\"CGIPath\" eq=\"$ophelia\">yay!</mt:if>"}, #10
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfEqual>",
-                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" eq=\"$mtcgipath\">yay!</mt:if>"} #11
+                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" eq=\"$mtcgipath\">yay!</mt:if>"}, #11
+
+{ "r" : "1",    "t" : "<MTIfNotEqual a=\"VAL1\" b=\"VAL2\">yay!</MTIfNotEqual>",
+                "e" : "<mt:IfNotEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfNotEqual>"}, #12
+
+{ "r" : "1",    "t" : "<MTIfNotEqual a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfNotEqual>",
+                "e" : "<mt:if ne=\"VAL2\" name=\"spanky\">yay!</mt:if>"},   #13
+
+{ "r" : "1",    "t" : "<MTIfNotEqual a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfNotEqual>",
+                "e" : "<mt:if ne=\"VAL0\" name=\"pooky\">yay!</mt:if>"},    #14
+
+{ "r" : "1",    "t" : "<MTIfNotEqual a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfNotEqual>",
+                "e" : "<mt:if ne=\"$ophelia\" tag=\"CGIPath\">yay!</mt:if>"}, #15
+
+{ "r" : "1",    "t" : "<MTIfNotEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfNotEqual>",
+                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if ne=\"$mtcgipath\" tag=\"CGIPath\">yay!</mt:if>"}, #16
+
+{ "r" : "1",    "t" : "<MTIfLess a=\"VAL1\" b=\"VAL2\">yay!</MTIfLess>",
+                "e" : "<mt:IfLess a=\"VAL1\" b=\"VAL2\">yay!</mt:IfLess>"}, #17
+
+{ "r" : "1",    "t" : "<MTIfLess a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfLess>",
+                "e" : "<mt:if lt=\"VAL2\" name=\"spanky\">yay!</mt:if>"},   #18
+
+{ "r" : "1",    "t" : "<MTIfLess a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfLess>",
+                "e" : "<mt:if lt=\"VAL0\" name=\"pooky\">yay!</mt:if>"},    #19
+
+{ "r" : "1",    "t" : "<MTIfLess a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfLess>",
+                "e" : "<mt:if lt=\"$ophelia\" tag=\"CGIPath\">yay!</mt:if>"}, #20
+
+{ "r" : "1",    "t" : "<MTIfLess a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfLess>",
+                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if lt=\"$mtcgipath\" tag=\"CGIPath\">yay!</mt:if>"}, #21
+
+{ "r" : "1",    "t" : "<MTIfGreater a=\"VAL1\" b=\"VAL2\">yay!</MTIfGreater>",
+                "e" : "<mt:IfGreater a=\"VAL1\" b=\"VAL2\">yay!</mt:IfGreater>"}, #22
+
+{ "r" : "1",    "t" : "<MTIfGreater a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfGreater>",
+                "e" : "<mt:if gt=\"VAL2\" name=\"spanky\">yay!</mt:if>"},   #23
+
+{ "r" : "1",    "t" : "<MTIfGreater a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfGreater>",
+                "e" : "<mt:if gt=\"VAL0\" name=\"pooky\">yay!</mt:if>"},    #24
+
+{ "r" : "1",    "t" : "<MTIfGreater a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfGreater>",
+                "e" : "<mt:if gt=\"$ophelia\" tag=\"CGIPath\">yay!</mt:if>"}, #25
+
+{ "r" : "1",    "t" : "<MTIfGreater a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfGreater>",
+                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if gt=\"$mtcgipath\" tag=\"CGIPath\">yay!</mt:if>"}, #26
+
+{ "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"VAL1\" b=\"VAL2\">yay!</MTIfGreaterOrEqual>",
+                "e" : "<mt:IfGreaterOrEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfGreaterOrEqual>"}, #27
+
+{ "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfGreaterOrEqual>",
+                "e" : "<mt:if name=\"spanky\" ge=\"VAL2\">yay!</mt:if>"},   #28
+
+{ "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfGreaterOrEqual>",
+                "e" : "<mt:if name=\"pooky\" ge=\"VAL0\">yay!</mt:if>"},    #29
+
+{ "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfGreaterOrEqual>",
+                "e" : "<mt:if tag=\"CGIPath\" ge=\"$ophelia\">yay!</mt:if>"}, #30
+
+{ "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfGreaterOrEqual>",
+                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" ge=\"$mtcgipath\">yay!</mt:if>"}, #31
+
+{ "r" : "1",    "t" : "<MTIfLessOrEqual a=\"VAL1\" b=\"VAL2\">yay!</MTIfLessOrEqual>",
+                "e" : "<mt:IfLessOrEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfLessOrEqual>"}, #32
+
+{ "r" : "1",    "t" : "<MTIfLessOrEqual a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfLessOrEqual>",
+                "e" : "<mt:if le=\"VAL2\" name=\"spanky\">yay!</mt:if>"},   #33
+
+{ "r" : "1",    "t" : "<MTIfLessOrEqual a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfLessOrEqual>",
+                "e" : "<mt:if le=\"VAL0\" name=\"pooky\">yay!</mt:if>"},    #34
+
+{ "r" : "1",    "t" : "<MTIfLessOrEqual a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfLessOrEqual>",
+                "e" : "<mt:if le=\"$ophelia\" tag=\"CGIPath\">yay!</mt:if>"}, #35
+
+{ "r" : "1",    "t" : "<MTIfLessOrEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfLessOrEqual>",
+                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if le=\"$mtcgipath\" tag=\"CGIPath\">yay!</mt:if>"} #36
 
 
 # { "r" : "1", "t" : "<MTIfNotEqual a=\"VAL\" b=\"VAL\">1</MTIfNotEqual>", "e" : "<mt:if name=\"hello\" eq=\"1\">1</mt:if>"}, #7

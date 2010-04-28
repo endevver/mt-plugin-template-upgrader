@@ -22,15 +22,18 @@ sub hdlr_if_one {
 
 sub hdlr_unless_zero {
     my $node = shift;
-    $node->tagName('IfNonZero');
+    $node->tagName('Unless');
+    $node->setAttribute('eq', 0);
 }
 
 sub hdlr_unless_empty {
     my $node = shift;
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     # $logger->debug('$node BEFORE: ', l4mtdump($node));
-    $node->tagName('IfNonEmpty');
-    $logger->debug('$node AFTER: ', l4mtdump($node));
+    $node->tagName('Unless');
+    $node->setAttribute('eq', '');
+    # $node->tagName('IfNonEmpty');
+    # $logger->debug('$node AFTER: ', l4mtdump($node));
 }
 
 # This demonstrates modification of order-sensitive attributes based on a condition
