@@ -12,13 +12,14 @@ sub hdlr_default {
     my ($node) = @_;
     my $tag    = $node->tagName;    
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ###l4p $logger->debug('In handler for '.$tag);
 
     # We don't handle the expr attribute because it would be hard to do well
     #    <MTIfEmpty expr="[MTEntryComments]1[/MTEntryComments]">
     #        No comments have been posted yet.
     #    </MTIFEmpty>
     if ( $node->getAttribute('expr') ) {
-        $logger->warn('Skipping tag '.$node->tagName.' due to "expr" attribute.');
+        $logger->info('Skipping tag '.$node->tagName.' due to "expr" attribute.');
         return;
     }
 
@@ -31,7 +32,7 @@ sub hdlr_default {
     # Rename attribute 'var' to 'tag' if it exists
     $node->renameAttribute('var', 'tag') if $node->[1]{'var'};
 
-    ###l4p $logger->debug('Finished '.$tag);
+    ###l4p $logger->debug('Leaving handler for '.$tag);
 }
 
 1;

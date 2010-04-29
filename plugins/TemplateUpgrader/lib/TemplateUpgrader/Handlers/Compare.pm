@@ -8,6 +8,8 @@ use Data::Dumper;
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
+use base qw( TemplateUpgrader::Handlers );
+
 our %operators = (
     ifequal          => 'eq',
     ifnotequal       => 'ne',
@@ -31,26 +33,24 @@ our %reverse_tags = (
     
 BEGIN {
     no strict 'refs';
-    my @methods = qw( if_equal     if_less    if_greater_or_equal 
-                      if_not_equal if_greater if_less_or_equal   );
-    *${\"hdlr_$_"} = \&hdlr_default foreach @methods;
+    # Tags we transform
+    *${\"hdlr_$_"} = \&hdlr_default
+        foreach qw( if_equal     if_less    if_greater_or_equal 
+                    if_not_equal if_greater if_less_or_equal   );
+    # Tags we don't transform
+    *${\"hdlr_$_"} = __PACKAGE__->can('_no_transform')
+        foreach qw( ifnotbetween  ifbetween  ifbetweenexclusive );
 }
 
 sub hdlr_default {
-    my ($node, $tag) = @_;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    process_attributes( $node ) && $node->tagName( $tag || 'If' );
-    ###l4p $logger->debug('Finished an IfEqual');
-    
+    my ($node, $newtag) = @_;
+    $newtag ||= 'If';
+    my $tag    = $node->tagName;    
+    ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ##l4p $logger->debug('In handler for '.$tag);
+    process_attributes( $node ) && $node->tagName( $newtag );
+    ##l4p $logger->debug('Leaving handler for '.$tag);
 }
-
-###
-### TAGS WE DON'T HANDLE
-###
-sub ifnotbetween { }
-sub ifbetween { }
-sub ifbetweenexclusive { }
-
 
 sub process_attributes {
     my $node      = shift;
@@ -73,15 +73,15 @@ sub process_attributes {
                     )$                      #
                 }xi 
             } keys %$node_attr ) {
-        $logger->warn('Skipping '.$node->tagName.' node');
+        ###l4p $logger->info('Skipping '.$node->tagName.' node');
         return 0;
     }
     elsif ( keys %$node_attr > 2 ) {
-        $logger->warn('Skipping '.$node->tagName.' node. Too many attributes.');
+        ###l4p $logger->info('Skipping '.$node->tagName.' node. Too many attributes.');
         return 0;
     }
     elsif ( keys %$node_attr < 2 ) {
-        $logger->warn('Skipping '.$node->tagName.' node. Not enough attributes.');
+        ###l4p $logger->info('Skipping '.$node->tagName.' node. Not enough attributes.');
         return 0;
     }
 
@@ -119,15 +119,15 @@ sub process_attributes {
 
             my $tok = $upgrader->compile_markup( '<'.$1.'>' );
             if ( ! defined $tok ) {
-                $logger->error('Skipping tag due to compilation error');
+                ###l4p $logger->warn('Skipping tag due to compilation error');
                 return 0;
             }
 
-            $logger->debug('PARSED: ', l4mtdump({
-                attr     => $attr,
-                attr_val => $node_attr->{$attr},
-                tok      => $tok,
-            }));
+            ###l4p $logger->debug($node->tagName .' PARSED ATTRIBUTE: ', l4mtdump({
+            ###l4p     attr     => $attr,
+            ###l4p     attr_val => $node_attr->{$attr},
+            ###l4p     tok      => $tok,
+            ###l4p }));
 
             $tok = shift @$tok;
             
@@ -144,8 +144,8 @@ sub process_attributes {
 
     if (    $attr_sets[0]{type} eq 'val'
         and $attr_sets[1]{type} eq 'val' ) {
-        $logger->warn('Skippng node. '.$node->tagName
-                      .' used two scalar values (no tag/variable)');
+        ###l4p $logger->info('Skipping node. '.$node->tagName
+        ###l4p               .' used two scalar values (no tag/variable)');
         return 0;
     }
 
@@ -161,6 +161,7 @@ sub process_attributes {
         my $prepend = $tmpl->createElement( lc($tag), $prepend_attr );
         my $inserted = $tmpl->insertBefore( $prepend, $node );
         $prepend->setAttribute('setvar', 'mt'.lc($tag));
+        push @{ $prepend->[4] }, [ 'setvar', 'mt'.lc($tag) ];
         # The 'b' attribute takes a 
         $attr_sets[1]{type} = 'val';
         $attr_sets[1]{op}   = $op;
@@ -183,23 +184,27 @@ sub process_attributes {
     if (   ($attr_sets[0]{type} eq 'tag' and $attr_sets[1]{type} eq 'var')
         || ($attr_sets[0]{type} eq 'var' and $attr_sets[1]{type} eq 'tag')) {
         foreach my $set ( @attr_sets ) {
-            next unless $set->{type} eq 'var';
-            my $tok    = delete $set->{token};
-            $set->{type} = 'val';
-            $set->{op}   = $op;
-            $set->{val}  = '$'.$tok->getAttribute('name'); # $ for variable interpolation
+            if ($set->{type} eq 'var') {
+                my $tok    = delete $set->{token};
+                $set->{type} = 'val';
+                $set->{op}   = $op;
+                $set->{val}  = '$'.$tok->getAttribute('name'); # $ for variable interpolation
+            }
+            else { # $set->{type} eq 'tag'
+            }
         }
+        
     }
 
-    $logger->debug('@attr_sets: ', l4mtdump(\@attr_sets));
+    ###l4p $logger->debug('@attr_sets: ', l4mtdump(\@attr_sets));
 
     # Remove all current attributes from the current node
     $node->removeAttribute( $_ ) foreach keys %$node_attr;
 
-    my %new_attr;
     foreach my $set ( @attr_sets ) {
         if ( $set->{type} eq 'val' ) {
             $node->setAttribute( $set->{op}, $set->{val} );
+            push @{ $node->[4] }, [ $set->{op}, $set->{val} ];
         }
         else {
             my $tok        = $set->{token};
@@ -207,9 +212,15 @@ sub process_attributes {
                 if $set->{type} eq 'tag';
             $node->setAttribute( $_, $tok->getAttribute($_) )
                 foreach keys %{ $tok->[1] };
+                # unshift @args, 'tag', $set->{token}->tagName;
+
+            foreach my $k ( qw( name tag )) {
+                next unless exists $node->[1]{$k};
+                unshift @{ $node->[4] }, [ $k, $node->getAttribute( $k ) ];
+            }
         }
     }
-    $logger->debug('$node FINAL: ', l4mtdump($node));
+    ###l4p $logger->debug($node->tagName.' FINAL ATTRIBUTES: ', l4mtdump($node->[1]));
     
     1;
 }

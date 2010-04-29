@@ -23,4 +23,10 @@ sub default_hdlr {
     );
 }
 
+sub _no_transform {
+    my $node = shift;
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ###l4p $logger->info($node->tagName.': Skipping node, no transformation defined');
+}
+
 1;

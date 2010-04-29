@@ -28,22 +28,21 @@ sub init {
 # }
 
 sub upgrade {
-    my $self                = shift;
-    my ( $tmpl, $handlers ) = @_;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    my $self                  = shift;
+    my ( $tmpl, $handlers )   = @_;
+    $handlers               ||= $self->handlers || {};
+    #l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
-    my $text_only           = ( ref $tmpl eq 'SCALAR' );
+    my $text_only = ! ref $tmpl;
     if ( $text_only ) {
         my $tmpl_obj = MT->model('template')->new();
-        $tmpl_obj->text( $$tmpl );
+        $tmpl_obj->text( ref $tmpl ? $$tmpl : $tmpl );
         $tmpl = $tmpl_obj;
     }
 
-    # my $ctx           = $tmpl->context();
-    $handlers         ||= $self->handlers || {};
     # $logger->debug('$handlers: ', l4mtdump($handlers));
     # $logger->debug('$tmpl->tokens: ', l4mtdump($tmpl->tokens));
-    
+
     while ( my ( $tag, $code ) = each %$handlers ) {
         $code = MT->handler_to_coderef($code); 
         # $logger->debug('Handling tag: '.$tag);

@@ -1,51 +1,59 @@
 package TemplateUpgrader::Test;
 
 use strict;
-use lib qw( t/lib   plugins/TemplateUpgrader/lib
-            plugins/TemplateUpgrader/extlib lib extlib );
-
-            # use lib qw( plugins/TemplateUpgrader/t/lib   t/lib
-            #             plugins/TemplateUpgrader/lib
-            #             plugins/TemplateUpgrader/extlib 
-            #             lib 
-            #             extlib );
+use warnings;
+use lib qw( plugins/TemplateUpgrader/t/lib
+            plugins/TemplateUpgrader/lib
+            plugins/TemplateUpgrader/extlib
+            t/lib  lib  extlib );
 
 use IPC::Open2;
-use SelfLoader;
+# use SelfLoader;
+require POSIX;
+use JSON -support_by_pp;
 use Data::Dumper;
-
-$| = 1;
 
 # use MT::Test qw(:db :data);
 use Test::More;
-use JSON -support_by_pp;
 use MT;
-# use MT::Util qw(ts2epoch epoch2ts);
 use MT::Template::Context;
 use MT::Builder;
 
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
-require POSIX;
+use base qw( Class::Data::Inheritable );
+__PACKAGE__->mk_classdata(qw( handlers ));
+
+$| = 1;
+
+use TemplateUpgrader;
 
 sub run {
     my $class = shift;
-    my $num = 1;
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
+    my $num = 1;
     my $mt  = MT->new();
-    my $ctx = MT::Template::Context->new;
-    $ctx->stash('builder', MT::Builder->new);
+
+    unless ( $class->handlers ) {
+        $class->handlers( MT->registry('tag_upgrade_handlers') || {} );
+        ###l4p $logger->debug('$class->handlers: ', l4mtdump($class->handlers));
+    }
 
     while ( defined( my $test = $class->get_test() ) ) {
-        # print STDERR Dumper($test);
-        unless ($test->{r}) {
-            pass("perl test skip " . $num++);
-            next;
+         if ( $test->{r} ) {
+            ###l4p $logger->debug( 'NEXT TEST for '. $class );
+            ###l4p $logger->debug( '    GIVEN: '. $test->{t} );
+            ###l4p $logger->debug( ' EXPECTED: ', $test->{e} );
+
+            my $result = $class->transform( $test->{t} );
+            is( $result, $test->{e}, "perl test " . $num++ );
         }
-        # my $result = build($ctx, $test->{t});
-        my $result = $class->transform($ctx, $test->{t});
-        is($result, $test->{e}, "perl test " . $num++);
+        else {
+            ###l4p $logger->debug('SKIPPING TEST: '.$test->{t} );
+            pass("perl test skip " . $num++);
+        }
     }
 }
 
@@ -70,10 +78,10 @@ sub run {
     }
 
     sub _test_data {
-        my $class      = shift;
+        my $class = shift;
         my $filehandle = (ref $class || $class).'::DATA';
         local $/       = undef;
-        local $_ = <$filehandle>;
+        local $_       = eval "<$filehandle>";
         # Remove our comments
         s{^ *#.*$}{}mg;
         s{# *\d+ *(?:TBD.*)? *$}{}mg;
@@ -100,16 +108,9 @@ sub run {
 # EOF
 
 sub transform {
-    my $class = shift;
-    my ( $ctx, $markup ) = @_;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    my $handlers ||= MT->registry('tag_upgrade_handlers') || {};
-$logger->debug('$handlers: ', l4mtdump($handlers));
-
-    use TemplateUpgrader;
-    my $upgrader = TemplateUpgrader->new({ handlers => $handlers });
-    return $upgrader->upgrade( ref $markup ? $markup : \$markup );
+    my ( $class, $markup ) = @_;
+    my $upgrader = TemplateUpgrader->new({ handlers => $class->handlers });
+    my $result = $upgrader->upgrade( $markup );
 }
-
 
 1;
