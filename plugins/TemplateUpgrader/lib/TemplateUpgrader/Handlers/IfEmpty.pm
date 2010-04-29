@@ -28,11 +28,9 @@ sub hdlr_default {
     # Add the eq="" attribute
     $node->setAttribute( 'eq' => '');
 
-    # Replace var= with tag=
-    if ( my $tag = $node->getAttribute('var') ) {
-        $node->setAttribute('tag');
-        $node->removeAttribute('var');
-    }
+    # Rename attribute 'var' to 'tag' if it exists
+    $node->renameAttribute('var', 'tag') if $node->[1]{'var'};
+
     ###l4p $logger->debug('Finished '.$tag);
 }
 

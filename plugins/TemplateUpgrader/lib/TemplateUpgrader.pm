@@ -169,4 +169,17 @@ sub prependAttribute {
     
 }
 
+sub renameAttribute {
+    my ($node, $old, $new) = @_;
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    if ( exists $node->[1]{$new} ) {
+        $logger->error(
+             'Renaming of %s attribute (value: %s) to %s failed due '
+            .'to existing target attribute (value: %s)'
+        );
+        return;
+    }
+    $node->setAttribute( $new, $node->removeAttribute( $old ) );
+}
+
 1;
