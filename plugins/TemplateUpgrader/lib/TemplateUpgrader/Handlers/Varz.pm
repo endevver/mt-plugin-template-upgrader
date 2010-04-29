@@ -36,24 +36,4 @@ sub hdlr_unless_empty {
     # $logger->debug('$node AFTER: ', l4mtdump($node));
 }
 
-# This demonstrates modification of order-sensitive attributes based on a condition
-#
-# sub hdlr_include {
-#     my $node = shift;
-# 
-#     # If we're including a module...
-#     if ( defined $node->getAttribute('module') ) {
-# 
-#         # Set the woohoo attribute
-#         $node->setAttribute('woohoo', 1);
-# 
-#         # Set the ordering of the attributes, if needed
-#         $node->[4] = [
-#                         [ 'module' => $node->getAttribute('module') ],
-#                         [ 'woohoo' => $node->getAttribute('woohoo') ]
-#                     ];
-#     }
-# }
-
-
 1;
