@@ -20,3 +20,5 @@ tag_upgrade_handlers:
     ifnotbetween: $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_not_between
     ifbetween: $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_between
     ifbetweenexclusive: $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_between_exclusive
+    ifempty: $TemplateUpgrader::TemplateUpgrader::Handlers::IfEmpty::hdlr_default
+    ifnotempty: $TemplateUpgrader::TemplateUpgrader::Handlers::IfEmpty::hdlr_default
