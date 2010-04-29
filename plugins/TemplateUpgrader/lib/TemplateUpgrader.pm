@@ -81,6 +81,7 @@ sub reflow {
         if ($token->[0] eq 'TEXT') {
             $str .= $token->[1];
         } else {
+            $token = $self->order_attributes( $tmpl->context, $token );
             my $tag = $token->[0];
             $str .= '<mt:' . $tag;
             if (my $attrs = $token->[4]) {
@@ -109,8 +110,38 @@ sub reflow {
     return $str;
 }
 
+sub order_attributes {
+    my $self          = shift;
+    my ($ctx, $node)  = @_;
+    my $attrh         = $node->[1] || {};
+    my $attrs         = $node->[4] || [];
+    my %ordered_attrs = map { $_->[0] => 1 } @$attrs;
+    
+    # Update the ordered attribute values from the
+    # attribute hash since that's what setAttribute updates
+    $_->[1] = $attrh->{ $_->[0] } foreach @$attrs;
+    
+    # We need to check our attributes against the list of filters 
+    # since those need to be ordered for post-processing.
+    my $mods ||= $ctx->{__filters};
+    foreach my $k ( keys %$attrh ) {
+        push @$attrs, [$k, $attrh->{$k} ] if exists $mods->{$k};
+    }
+    $node->[4] = $attrs;
+    ###l4p if ( @{ $node->[4] } ) {
+        ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+        ###l4p $logger->debug('POST-ORDERED NODE: ', l4mtdump([
+        ###l4p     { tagname => $node->[0] },
+        ###l4p     { attrh => $node->[1]   },
+        ###l4p     { attrs => $node->[4]   },
+        ###l4p     { inner => $node->[2]   }
+        ###l4p ]));
+    ###l4p }
+    $node;
+}
 
 1;
+
 
 package MT::Template;
 

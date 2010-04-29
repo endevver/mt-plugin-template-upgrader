@@ -13,7 +13,7 @@ exit;
 __DATA__
 
 [
-{ "r" : "1", "t" : "", "e" : ""}, #1
+{ "r" : "1", "t" : "", "e" : ""},                                           #1
 
 { "r" : "0",    "t" :  "<$mt:SetVar name=\"hello\" value=\"kitty\"$>", 
                 "e" : "<mt:var value=\"kitty\" name=\"hello\">"},           #2
@@ -30,3 +30,4 @@ __DATA__
 { "r" : "0",    "t" : "<MTUnlessEmpty name=\"hello\">1</MTUnlessEmpty>",
                 "e" : "<mt:ifnonempty name=\"hello\">1</mt:ifnonempty>"}   #6
 ]
+

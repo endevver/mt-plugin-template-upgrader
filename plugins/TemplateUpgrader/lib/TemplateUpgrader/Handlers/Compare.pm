@@ -161,8 +161,8 @@ sub process_attributes {
         my $prepend = $tmpl->createElement( lc($tag), $prepend_attr );
         my $inserted = $tmpl->insertBefore( $prepend, $node );
         $prepend->setAttribute('setvar', 'mt'.lc($tag));
-        push @{ $prepend->[4] }, [ 'setvar', 'mt'.lc($tag) ];
-        # The 'b' attribute takes a 
+        # The b attributes becomes an interpolated template variable
+        # set by the setvar attribute of the prepended node above
         $attr_sets[1]{type} = 'val';
         $attr_sets[1]{op}   = $op;
         $attr_sets[1]{val}  = '$mt'.lc($tag); # $ for variable interpolation
@@ -204,7 +204,7 @@ sub process_attributes {
     foreach my $set ( @attr_sets ) {
         if ( $set->{type} eq 'val' ) {
             $node->setAttribute( $set->{op}, $set->{val} );
-            push @{ $node->[4] }, [ $set->{op}, $set->{val} ];
+            # push @{ $node->[4] }, [ $set->{op}, $set->{val} ];
         }
         else {
             my $tok        = $set->{token};

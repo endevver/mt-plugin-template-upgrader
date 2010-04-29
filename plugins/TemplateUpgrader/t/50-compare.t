@@ -345,7 +345,10 @@ __DATA__
                 "e" : "<mt:if tag=\"CGIPath\" le=\"$ophelia\">yay!</mt:if>"}, #35
 
 { "r" : "1",    "t" : "<MTIfLessOrEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfLessOrEqual>",
-                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" le=\"$mtcgipath\">yay!</mt:if>"} #36
+                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" le=\"$mtcgipath\">yay!</mt:if>"}, #36
+
+{ "r" : "1",    "t" : "<MTIfEqual a=\"[MTGetVar name='spanky' cat=' hiya']\" b=\"VAL2\">yay!</MTIfEqual>",
+                "e" : "<mt:if name=\"spanky\" cat=\" hiya\" eq=\"VAL2\">yay!</mt:if>"}   #37
 
 
 # { "r" : "1", "t" : "<MTIfNotEqual a=\"VAL\" b=\"VAL\">1</MTIfNotEqual>", "e" : "<mt:if name=\"hello\" eq=\"1\">1</mt:if>"}, #7
