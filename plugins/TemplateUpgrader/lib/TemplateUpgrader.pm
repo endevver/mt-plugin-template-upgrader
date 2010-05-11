@@ -31,7 +31,7 @@ sub upgrade {
     my $self                  = shift;
     my ( $tmpl, $handlers )   = @_;
     $handlers               ||= $self->handlers || {};
-    #l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     my $text_only = ! ref $tmpl;
     if ( $text_only ) {
@@ -44,6 +44,7 @@ sub upgrade {
     # $logger->debug('$tmpl->tokens: ', l4mtdump($tmpl->tokens));
 
     while ( my ( $tag, $code ) = each %$handlers ) {
+        next if $tag eq 'plugin' and ref $code;
         $code = MT->handler_to_coderef($code); 
         # $logger->debug('Handling tag: '.$tag);
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
@@ -54,7 +55,7 @@ sub upgrade {
     $tmpl->{reflow_flag} = 1;
     $tmpl->text( $self->reflow( $tmpl ) || '' );
 
-    return $text_only ? $tmpl->text : $tmpl;
+    return ($text_only ? $tmpl->text : $tmpl);
 }
 
 sub compile_markup {
@@ -158,15 +159,22 @@ sub save_backup {
     $backup->type('backup');
     $backup->name(
           $backup->name 
-        . MT->instance->translate( ' (TemplateUpgrader backup from [_1]) [_2]', 
-                            $ts, $tmpl->type )
+        . MT->instance->translate(
+            ' (TemplateUpgrader backup [_1]/[_2] from [_1]) [_2]', 
+            $blog->id, $tmpl->id, $ts, $tmpl->type
+          )
     );
     $backup->outfile('');
     $backup->linked_file( undef );
     $backup->identifier(undef);
     $backup->rebuild_me(0);
     $backup->build_dynamic(0);
-    $backup->save;
+    $backup->meta('original_template', $tmpl->id);
+    $backup->save
+        or die sprintf   'Could not save backup template: '
+                        .'(Blog: %s, Template: %s) %s',
+                        $blog->id, $tmpl->id, $tmpl->name;
+    return $backup;
 }
 
 package MT::Template::Node;

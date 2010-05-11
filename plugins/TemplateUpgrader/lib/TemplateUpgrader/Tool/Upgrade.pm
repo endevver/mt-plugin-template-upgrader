@@ -28,11 +28,14 @@ use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 
 use TemplateUpgrader;
 
-sub usage { '( --blog BLOG | --template TEMPLATE ) [ --debug ] [ --analyze ]' }
+sub usage {
+    'upgrade [options] [--blog KEY] '
+        .'[( --file PATH || --template KEY || --stdin )]'
+}
 
 sub option_spec {
     return (
-        'blog|b=s', 'template|tmpl|t=s',
+        'blog|b=s', 'template|tmpl|t=s', 'file|f=s', 'stdin|s',
         'analyze|a', 'upgrade|u', 'debug|d',
         $_[0]->SUPER::option_spec()
     );
@@ -62,30 +65,73 @@ sub tags_from_plugin {
 
 sub initialize_default_handler {
     my $app = shift;
-
-    return unless $app->param('analyze');
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     # my $plugin   = MT->component('TemplateUpgrader');
     $handlers = $app->registry('tag_upgrade_handlers') || {};
 
     my %plugin_tags;
-    foreach my $sig ( keys %MT::Plugins ) {
-        next if grep { $_ eq $sig } @BUNDLED_TAG_PLUGINS;
-        my $plugin = $MT::Plugins{$sig}{object} or next;
-        my @tags   = $app->tags_from_plugin( $plugin ) or next;
+    PLUGIN: foreach my $sig ( keys %MT::Plugins ) {
+        next PLUGIN if grep { $_ eq $sig } @BUNDLED_TAG_PLUGINS;
+        my $plugin = $MT::Plugins{$sig}{object} or next PLUGIN;
+        my @tags   = $app->tags_from_plugin( $plugin ) or next PLUGIN;
         push @{ $plugin_tags{$sig} }, @tags;
-        $handlers->{$_} =
-            '$TemplateUpgrader::TemplateUpgrader::Handlers::default_hdlr'
-                foreach @tags;
+        TAG: foreach my $tag ( @tags ) {
+            next TAG if $handlers->{$tag} and ! $app->param('analyze');
+            require TemplateUpgrader::Handlers;
+            $handlers->{$tag} = sub {
+                TemplateUpgrader::Handlers->default_hdlr(
+                        @_, { plugin => $sig } );
+            };
+        }
     }
     $app->registry('tag_upgrade_handlers', $handlers);
+    $app->request('tag_upgrade_plugin_tags', \%plugin_tags );
     ###l4p if ( $logger->is_debug() ) {
     ###l4p     $logger->debug("Tags: ", l4mtdump(\%plugin_tags));
     ###l4p     $logger->debug('$handlers: ', l4mtdump($handlers));
     ###l4p }
 }
 
+sub init_options {
+    my $app = shift;
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    $app->SUPER::init_options( @_ );
+    my $options = $app->options();
+
+    my $exclusive = grep { $options->{$_} } qw( template file stdin );
+    if ( $exclusive > 1 ) {
+        $app->show_usage({
+            -exitval => 2,
+            -verbose => 0,
+            -message => 'Error: The --template, --file and --stdin '
+                        .'options cannot be used together.'
+        });
+    }
+    
+    $app->show_usage() unless $exclusive || defined $options->{blog};
+
+    $options->{file} = '-' if $options->{stdin};
+
+    if ( my $file = $options->{file} ) {
+        require MT::FileMgr;
+        my $fmgr = MT::FileMgr->new('Local');
+        my $text = $fmgr->get_data( $file ) || '';
+        if ( $text eq '' ) {
+            $app->show_usage({
+                -exitval => 2,
+                -verbose => 0,
+                -message => 'Error: No template data found.'
+            });
+        }
+        my $tmpl = MT->model('template')->new();
+        $tmpl->name( 'Unnamed template from '
+                    . ($options->{stdin} ? 'STDIN' : $file));
+        $tmpl->text( $text );
+        $options->{template} = $tmpl;
+    }
+    $options;
+}
 
 sub mode_default {
     my $app      = shift;
@@ -93,15 +139,10 @@ sub mode_default {
     my $template = $app->param('template');
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
-    $app->param('analyze') and $app->initialize_default_handler();
+    $app->initialize_default_handler();
 
     require MT::Util::ReqTimer;
     $timer = MT::Util::ReqTimer->new( join('-', __PACKAGE__, $$) );
-
-    if ( ! defined $blog && ! $template ) {
-        $app->show_usage(
-            'Error: Either --blog or --template parameter is required.' );
-    }
 
     my $tmpl_iter;
 
@@ -115,7 +156,14 @@ sub mode_default {
     if ( ! defined $template ) {
         $tmpl_iter = MT->model('template')->load_iter({
             blog_id => $blog->id
-        }) unless defined $template;
+        });
+    }
+    # If the template parameter looks like a template object
+    elsif ( ref $template and $template->isa( MT->model('template') ) ) { 
+        my @templates = ( $template );
+        require Data::ObjectDriver::Iterator;
+        $tmpl_iter = Data::ObjectDriver::Iterator->new(
+                        sub { shift ( @templates ) } );
     }
     # If the template parameter looks like an ID, we try to load it
     elsif ( $template =~ m{^[0-9]+$} ) { 
@@ -129,7 +177,8 @@ sub mode_default {
         else {
             my @templates = ( $template );
             require Data::ObjectDriver::Iterator;
-            $tmpl_iter = Data::ObjectDriver::Iterator->new( sub { shift ( @templates ) } );
+            $tmpl_iter = Data::ObjectDriver::Iterator->new(
+                            sub { shift ( @templates ) } );
         }
     }
 
@@ -157,6 +206,7 @@ sub mode_default {
         ]);
     }
 
+    my $text;
     while ( my $tmpl = $tmpl_iter->() ) {
         $app->upgrade_template( $tmpl );
     }
@@ -169,6 +219,7 @@ sub upgrade_template {
     my $tmpl    = shift;
     my $orig    = $tmpl->text || '';
     $handlers ||= $app->registry('tag_upgrade_handlers') || {};
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     my $upgrader = TemplateUpgrader->new({ handlers => $handlers });
     $tmpl        = $upgrader->upgrade( $tmpl );
@@ -176,8 +227,9 @@ sub upgrade_template {
     my $new = $tmpl->text || '';
 
     if ( $new eq $orig ) {
-        printf "%s template \"%s\" (ID:%s) not modified.\n",
-            ucfirst($tmpl->type), $tmpl->name, $tmpl->id;
+        my $msg = sprintf('%-10d %-10s Template not modified: %s/%s',
+                    $app->blog->id, $tmpl->id, ucfirst($tmpl->type), $tmpl->name );
+        print $msg."\n" and $logger->info( $msg );
         return 0;
     }
 
@@ -187,14 +239,14 @@ sub upgrade_template {
     ###l4p      require HTML::Diff;
     ###l4p      import HTML::Diff qw(html_word_diff);
     ###l4p      $logger->debug(
-    ###l4p          'Template diff for '.$tmpl->name.' (ID:'.$tmpl->id.'): ',
+    ###l4p          'Template diff for '.$tmpl->name.' (ID:'.($tmpl->id||0).'): ',
     ###l4p          l4mtdump(html_word_diff( $orig, $new ))
     ###l4p      );
     ###l4p }
 
     if ( $app->param('debug') ) {
         printf "%s\n%s TEMPLATE \"%s\" (ID:%d)\n",
-            ('='x50), ucfirst($tmpl->type), $tmpl->name, $tmpl->id;
+            ('='x50), ucfirst($tmpl->type), $tmpl->name, ($tmpl->id||0);
         printf "ORIGINAL template: %s\n", $orig;
         printf "NEW template: %s\n", $new;
         require HTML::Diff;
@@ -202,9 +254,11 @@ sub upgrade_template {
         printf "TEMPLATE DIFF:\n%s\n",
             Dumper(html_word_diff($orig, $new));
     }
-
-    if ( $app->param('upgrade') ) {
-        $tmpl->save_backup();
+    elsif ( $app->param('file') ) {
+        $app->print( $new );
+    }
+    elsif ( $app->param('upgrade') ) {
+        my $backup = $tmpl->save_backup();
 
         $tmpl->text( $new );
         $tmpl->save;

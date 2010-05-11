@@ -16,7 +16,7 @@ and provides a command-line interface through which to operate.
 
 =head1 SYNOPSIS
 
- ./plugins/TemplateUpgrader/tools/upgrade [options]
+ upgrade [options] [--blog KEY] [( --file PATH || --template KEY || --stdin )]
 
 Use the --help flag for more information
 
@@ -27,13 +27,29 @@ Use the --help flag for more information
 
 =item B<-b, --blog (ID|NAME)>
 
-The ID or exact name of the blog to be used for template upgrade
+The ID or exact name of the blog to be used for template upgrade. This
+parameter is required unless --file or --stdin are specified in which case it
+is ignored.
 
 =item B<-t, --template (ID|IDENTIFIER|NAME)>
 
-OPTIONAL: This parameter is specified when a single template is to be
-upgraded. The --blog parameter is required company unless you specify the
-template ID.
+B<OPTIONAL>: Specify this parameter to upgrade a single MT template. The --blog
+parameter is required unless you specify a template ID. This parameter cannot
+be used with the --file or --stdin options.
+
+=item B<-f, --file FILEPATH>
+
+B<OPTIONAL>: Specify this parameter to use the contents of a file C<FILEPATH>
+as the template text to upgrade. The upgraded template will be printed back to
+c<STDOUT> (standard output) and a diff will be printed to C<STDERR> (standard
+error). This parameter cannot be used with the --template or --stdin options.
+
+=item B<-s, --stdin>
+
+B<OPTIONAL>: Specify this parameter to supply template code via STDIN. The
+upgraded template will be printed back to c<STDOUT> (standard output) and a
+diff will be printed to C<STDERR> (standard error). This parameter cannot be
+used with the --template or --file options.
 
 =item B<-d, --debug>
 

@@ -37,8 +37,9 @@ BEGIN {
     *${\"hdlr_$_"} = \&hdlr_default
         foreach qw( if_equal     if_less    if_greater_or_equal 
                     if_not_equal if_greater if_less_or_equal   );
+
     # Tags we don't transform
-    *${\"hdlr_$_"} = __PACKAGE__->can('_no_transform')
+    *${\"hdlr_$_"} = sub { __PACKAGE__->report_skipped() }
         foreach qw( ifnotbetween  ifbetween  ifbetweenexclusive );
 }
 
