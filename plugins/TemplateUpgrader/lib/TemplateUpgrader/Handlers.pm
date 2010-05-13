@@ -17,8 +17,9 @@ sub default_hdlr {
 sub _report {
     my ( $self, $params, $skipped ) = @_;
     my $node    = $params->{node};
+    my $tmpl    = $node->ownerDocument;
+
     my $attrs   = $node->[1];
-    my $tmpl    = $node->template;
     my $blog    = $tmpl->blog;
     my $tmpl_id = $tmpl && $tmpl->id ? $tmpl->id : 0;
     my $blog_id = $blog ? $blog->id : 0;

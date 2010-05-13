@@ -244,15 +244,51 @@ sub process_attributes {
         }
         else {
             my $tok        = $set->{token};
-            $node->setAttribute( 'tag', $tok->tagName )
-                if $set->{type} eq 'tag';
-            $node->setAttribute( $_, $tok->getAttribute($_) )
-                foreach keys %{ $tok->[1] };
-                # unshift @args, 'tag', $set->{token}->tagName;
+            $logger->debug('TOKEE: ', l4mtdump($tok));
+            my @tok_order = split(',', $tok->[1]{_attr_order});
+            
+            if ( keys %{ $tok->[1] } > 2 ) { # e.g. A modifier on GetVar 
+                
+                # We have to prepend a setvar assignment node to handle the
+                # of the tag/var attribute
+                my $prepend_attr = {
+                    map { $_ => $tok->getAttribute($_) } @tok_order,
+                    setvar => 'compare_val'
+                };
+                my $prepend = $tmpl->createElement( 'var', $prepend_attr );
+                ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
 
-            foreach my $k ( qw( name tag )) {
-                next unless exists $node->[1]{$k};
-                unshift @{ $node->[4] }, [ $k, $node->getAttribute( $k ) ];
+                my $inserted = $tmpl->insertBefore( $prepend, $node );
+                $prepend->setAttribute( $_, $prepend_attr->{$_} )
+                    foreach @tok_order, 'setvar';
+                ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
+
+                $node->setAttribute( 'name', 'compare_val' );
+
+                my @node_order = split(',', $node->[1]{_attr_order});
+                # $node->setAttribute( 'tag', $tok->tagName )
+                #     if $set->{type} eq 'tag';
+                $node->setAttribute( $_, $tok->getAttribute($_) )
+                    foreach grep { $_ ne 'tag' and $_ ne 'name' } @node_order;
+                ###l4p $logger->debug('PROCATTR NODE: '. $node->dump_node());
+                
+            }
+            else {
+                $node->setAttribute( 'tag', $tok->tagName )
+                    if $set->{type} eq 'tag';
+                $node->setAttribute( $_, $tok->getAttribute($_) )
+                    foreach grep { $_ ne 'tag' } @tok_order;
+                # $node->setAttribute( 'tag', $tok->tagName )
+                #     if $set->{type} eq 'tag';
+                # $node->setAttribute( $_, $tok->getAttribute($_) )
+                #     foreach keys %{ $tok->[1] };
+                    # unshift @args, 'tag', $set->{token}->tagName;
+                $logger->debug('NODEE: ', l4mtdump($node));
+
+                # foreach my $k ( qw( name tag )) {
+                #     next unless exists $node->[1]{$k};
+                #     unshift @{ $node->[4] }, [ $k, $node->getAttribute( $k ) ];
+                # }                
             }
         }
     }

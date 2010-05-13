@@ -333,7 +333,7 @@ __DATA__
                 "e" : "<mt:cgipath setvar=\"tag_mtcgipath\"><mt:if tag=\"CGIPath\" le=\"$tag_mtcgipath\">yay!</mt:if>"}, #31
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"[MTGetVar name='spanky' cat=' hiya']\" b=\"VAL2\">yay!</MTIfEqual>",
-                "e" : "<mt:if name=\"spanky\" cat=\" hiya\" eq=\"VAL2\">yay!</mt:if>"}   #32
+                "e" : "<mt:var name=\"spanky\" cat=\" hiya\" setvar=\"compare_val\"><mt:if name=\"compare_val\" eq=\"VAL2\">yay!</mt:if>"}   #32
 
 
 # { "r" : "1", "t" : "<MTIfNotEqual a=\"VAL\" b=\"VAL\">1</MTIfNotEqual>", "e" : "<mt:if name=\"hello\" eq=\"1\">1</mt:if>"}, #7

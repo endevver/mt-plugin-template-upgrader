@@ -9,6 +9,7 @@ author_name: "Jay Allen, Endevver Consulting"
 tag_upgrade_handlers:
     else:               $TemplateUpgrader::TemplateUpgrader::Handlers::Core::hdlr_else
     getvar:             $TemplateUpgrader::TemplateUpgrader::Handlers::Varz::hdlr_get_var
+    setvar:             $TemplateUpgrader::TemplateUpgrader::Handlers::Varz::hdlr_set_var
     ifone:              $TemplateUpgrader::TemplateUpgrader::Handlers::Varz::hdlr_if_one
     unlesszero:         $TemplateUpgrader::TemplateUpgrader::Handlers::Varz::hdlr_unless_zero
     unlessempty:        $TemplateUpgrader::TemplateUpgrader::Handlers::Varz::hdlr_unless_empty

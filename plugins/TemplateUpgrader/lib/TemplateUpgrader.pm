@@ -95,17 +95,16 @@ sub upgrade {
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
         foreach my $node ( @$nodes ) {
             $code->($node);
+            if ( my $name = $node->getAttribute('name') ) {
+                $logger->debug('IN NOMINE: ', $name);
+                $node->prependAttribute( 'name', $name )
+            }
             $logger->debug('NODE DUMP: '.$node->dump_node());
         }
         $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
-        $logger->debug('TEXT AFTER NODE: '.$tmpl->text());
-        # $tmpl->reflow( $tmpl->tokens );
-        # $tmpl->text;
-        # $tmpl->reset_tokens;
-        # $tmpl->{reflow_flag} = 1;
-        $logger->debug('TEXT AFTER HANDLER: '.$tmpl->text());
+        $logger->debug('TEXT AFTER HANDLER "'.$tag.'": '.$tmpl->text());
     }
-    $tmpl->{reflow_flag} = 1;
+    $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
     $logger->debug('TEXT AFTER ALL HANDLERS: '.( my $text = $tmpl->text()));
     
     # $tmpl->reset_markers;

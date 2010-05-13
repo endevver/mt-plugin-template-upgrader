@@ -140,6 +140,7 @@ sub reflow {
                 foreach my $a (@attr_order) {
                     ### DOC: Delete it from the attribute hash
                     my $v = delete $attrh->{$a};
+                    next unless defined $v;
                     ### DOC: Properly quote the value based on existing quotes
                     $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
                     ### DOC: Assemble the attribute/value string and append
@@ -158,7 +159,7 @@ sub reflow {
             if ($token->[2]) {
                 # container tag
                 $str .= $tmpl->reflow( $token->[2] );
-                $str .= '</mt:' . $tag . '>' unless $tag eq 'else';
+                $str .= '</mt:' . $tag . '>';# unless $tag eq 'else';
             }
         }
     }

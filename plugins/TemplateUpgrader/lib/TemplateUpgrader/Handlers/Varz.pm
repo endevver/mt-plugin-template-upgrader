@@ -19,17 +19,23 @@ sub hdlr_get_var {
     __PACKAGE__->report( $node );
 }
 
+sub hdlr_set_var {
+    my $node = shift;
+    $node->tagName('Var');
+    __PACKAGE__->report( $node );
+}
+
 sub hdlr_if_one {
     my $node = shift;
     $node->tagName('If');
-    $node->setAttribute('eq', 1);
+    $node->appendAttribute('eq', 1);
     __PACKAGE__->report( $node );
 }
 
 sub hdlr_unless_zero {
     my $node = shift;
     $node->tagName('Unless');
-    $node->setAttribute('eq', 0);
+    $node->appendAttribute('eq', 0);
     __PACKAGE__->report( $node );
 }
 
@@ -38,9 +44,7 @@ sub hdlr_unless_empty {
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     # $logger->debug('$node BEFORE: ', l4mtdump($node));
     $node->tagName('Unless');
-    $node->setAttribute('eq', '');
-    # $node->tagName('IfNonEmpty');
-    # $logger->debug('$node AFTER: ', l4mtdump($node));
+    $node->appendAttribute('eq', '');
     __PACKAGE__->report( $node );
 }
 

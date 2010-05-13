@@ -18,7 +18,8 @@ sub hdlr_else {
     # my $content = $parent->nodeValue() if $parent;
     # return unless defined $content;
     my $tmpl = $node->ownerDocument();
-    $tmpl->{reflow_flag} = 1;
+    $tmpl->text( $tmpl->reflow() );
+    # $tmpl->{reflow_flag} = 1;
     ###l4p $logger->debug('REFLOWED TEXT: '.$tmpl->text());
     __PACKAGE__->report( $node );
     return;
