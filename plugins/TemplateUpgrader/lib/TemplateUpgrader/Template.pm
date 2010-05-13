@@ -110,6 +110,7 @@ sub reflow {
     my ($tokens)   = @_;
     $tokens      ||= $tmpl->tokens;
     my $builder    = MT->model('templateupgrader_builder')->new();
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     die "Found a ".ref($tmpl) unless $tmpl->isa('TemplateUpgrader::Template');
 
     # reconstitute text of template based on tokens
@@ -169,7 +170,7 @@ sub innerHTML {
     if (@_) {
         my ($text) = @_;
         $node->[3] = $text;
-        my $builder = MT->model('templateupgrader_builder');
+        my $builder = MT->model('templateupgrader_builder')->new();
         my $ctx = MT::Template::Context->new;
         $node->[2] = $builder->compile($ctx, $text);
         my $tmpl = $node->ownerDocument;
@@ -223,7 +224,7 @@ sub NODE_FUNCTION () { 3 }
 
 sub dump_node {
     my $node     = shift;
-    my @elements = @_ || qw( 0..4);
+    my @elements = @_ || ( 0..4 );
     return Dumper( @{$node}[@elements] );
 }
 

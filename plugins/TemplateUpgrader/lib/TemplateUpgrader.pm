@@ -79,6 +79,8 @@ sub upgrade {
     }
     else {
         $tmpl = $tmpl_class->rebless( $tmpl );
+        die "Now it's not an MT::Template subclass!"
+            unless UNIVERSAL::isa($tmpl, 'MT::Template');
     }
     ###l4p $logger->debug('Class of template to upgrade: '.ref($tmpl).($text_only ? ' (pseudo)' : ''));
     ###l4p $logger->debug('Template text: ', $tmpl->text());
@@ -91,11 +93,20 @@ sub upgrade {
         # $logger->debug("Handling tag: $tag with handler ".$code);
         $code = MT->handler_to_coderef($code); 
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
-        $code->($_) && print $_->dump_node(),"===========\n" foreach @$nodes;
-        # $code->($_) foreach @$nodes;
+        foreach my $node ( @$nodes ) {
+            $code->($node);
+            $logger->debug('NODE DUMP: '.$node->dump_node());
+        }
+        $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
+        $logger->debug('TEXT AFTER NODE: '.$tmpl->text());
+        # $tmpl->reflow( $tmpl->tokens );
+        # $tmpl->text;
+        # $tmpl->reset_tokens;
+        # $tmpl->{reflow_flag} = 1;
+        $logger->debug('TEXT AFTER HANDLER: '.$tmpl->text());
     }
     $tmpl->{reflow_flag} = 1;
-    $logger->debug('TEXT AFTER: '.( my $text = $tmpl->text()));
+    $logger->debug('TEXT AFTER ALL HANDLERS: '.( my $text = $tmpl->text()));
     
     # $tmpl->reset_markers;
     # $tmpl->reflow( $tmpl->tokens() );
@@ -108,7 +119,7 @@ sub upgrade {
 sub compile_markup {
     my $self    = shift;
     my $markup  = shift;
-    my $builder = MT->model('templateupgrader_builder');
+    my $builder = MT->model('templateupgrader_builder')->new();
     my $ctx     = MT::Template::Context->new;
     $ctx->stash('builder', $builder);
     my $tokens = $builder->compile($ctx, $markup);

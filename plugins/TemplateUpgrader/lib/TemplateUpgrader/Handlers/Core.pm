@@ -10,6 +10,8 @@ use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 
 use base qw( TemplateUpgrader::Handlers );
 
+sub PLUGIN() { 'Core' }
+
 sub hdlr_else {
     my $node    = shift;
     # my $parent  = $node->parentNode()  if $node;
@@ -41,26 +43,6 @@ sub hdlr_else {
     # }
     # 
     __PACKAGE__->report( $node );
-}
-
-sub report {
-    my $self               = shift;
-    my ( $node, $message ) = @_;
-    $self->SUPER::report({
-        plugin  => 'Core',
-        node    => $node,
-        message => ($message||'')
-    });
-}
-
-sub report_skipped {
-    my $self               = shift;
-    my ( $node, $message ) = @_;
-    $self->SUPER::report_skipped({
-        plugin  => 'Core',
-        node    => $node,
-        message => ($message||'')
-    });
 }
 
 1;

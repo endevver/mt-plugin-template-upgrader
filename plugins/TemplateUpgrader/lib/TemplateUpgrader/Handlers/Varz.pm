@@ -44,24 +44,4 @@ sub hdlr_unless_empty {
     __PACKAGE__->report( $node );
 }
 
-sub report {
-    my $self               = shift;
-    my ( $node, $message ) = @_;
-    $self->SUPER::report({
-        plugin  => PLUGIN,
-        node    => $node,
-        message => ($message||'')
-    });
-}
-
-sub report_skipped {
-    my $self               = shift;
-    my ( $node, $message ) = @_;
-    $self->SUPER::report_skipped({
-        plugin  => PLUGIN,
-        node    => $node,
-        message => ($message||'')
-    });
-}
-
 1;

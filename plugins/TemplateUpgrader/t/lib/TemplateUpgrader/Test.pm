@@ -40,26 +40,6 @@ sub run {
         ###l4p $logger->debug('$class->handlers: ', l4mtdump($class->handlers));
     }
 
-    # Add in our templateupgrader_template object type
-    # which is a subclass of MT::Template
-    # $registry->{object_types}{templateupgrader_template}
-    #     = 'TemplateUpgrader::Template';
-
-    # my $tmpl_class = MT->model('templateupgrader_template');
-    # $TemplateUpgrader::Template::ORIG_NEW_METHOD
-    #     = MT->model('template')->can('new');
-    # 
-    # my $rc = Sub::Install::reinstall_sub({
-    #     code => '_new',
-    #     from => $tmpl_class,
-    #     into => 'MT::Template',
-    #     as   => 'new',
-    # });
-    # 
-    # my $tmpl = MT::Template->new();
-    # die $tmpl;
-
-
     my $report = sub {
         my $marker = (' 'x9).('*'x4).' ';
         return $marker.($_[0] ? 'PASS' : 'FAIL').(reverse $marker);
@@ -67,6 +47,8 @@ sub run {
     
     require TemplateUpgrader;
     my $upgrader = TemplateUpgrader->new({ handlers => $class->handlers });
+    $logger->debug('$upgrader: ', l4mtdump($upgrader));
+
     while ( defined( my $test = $class->get_test() ) ) {
          if ( $test->{r} ) {
 

@@ -51,7 +51,7 @@ sub report {
 sub report_skipped {
     my $self               = shift;
     my ( $node, $message ) = @_;
-    $self->_report_skipped({
+    $self->_report({
         plugin  => $self->PLUGIN,
         node    => $node,
         message => ($message||'')
