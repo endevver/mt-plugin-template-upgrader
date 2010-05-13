@@ -18,11 +18,11 @@ sub hdlr_else {
     # my $content = $parent->nodeValue() if $parent;
     # return unless defined $content;
     my $tmpl = $node->ownerDocument();
-    $tmpl->text( $tmpl->reflow() );
-    # $tmpl->{reflow_flag} = 1;
-    ###l4p $logger->debug('REFLOWED TEXT: '.$tmpl->text());
-    __PACKAGE__->report( $node );
-    return;
+    # $tmpl->text( $tmpl->reflow() );
+    $tmpl->{reflow_flag} = 1;
+    ##l4p $logger->debug('REFLOWED TEXT: '.$tmpl->text());
+    return __PACKAGE__->report( $node );
+
 
     # my $tmpl    = $node->ownerDocument();
     # ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();

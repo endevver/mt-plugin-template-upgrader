@@ -72,7 +72,6 @@ sub upgrade {
     if ( $text_only ) {
         ###l4p $logger->info('Got TEXT-ONLY template');
         my $tmpl_obj = $tmpl_class->new();
-        $tmpl_obj->{reflow_flag} = 1;
         $tmpl_obj->text( ref $tmpl ? $$tmpl : $tmpl );
         $tmpl = $tmpl_obj;
         ###l4p $logger->info('Got TEXT-ONLY template. Now '.ref($tmpl));
@@ -84,7 +83,7 @@ sub upgrade {
     }
     ###l4p $logger->debug('Class of template to upgrade: '.ref($tmpl).($text_only ? ' (pseudo)' : ''));
     ###l4p $logger->debug('Template text: ', $tmpl->text());
-    
+
 
     # $logger->debug('$handlers: ', l4mtdump($handlers));
     # $logger->debug('$tmpl->tokens: ', l4mtdump($tmpl->tokens));
@@ -93,6 +92,7 @@ sub upgrade {
         # $logger->debug("Handling tag: $tag with handler ".$code);
         $code = MT->handler_to_coderef($code); 
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
+        my $changed = 0;
         foreach my $node ( @$nodes ) {
             $code->($node);
             if ( my $name = $node->getAttribute('name') ) {
@@ -100,14 +100,16 @@ sub upgrade {
                 $node->prependAttribute( 'name', $name )
             }
             $logger->debug('NODE DUMP: '.$node->dump_node());
+            $changed++;
         }
         $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
         $logger->debug('TEXT AFTER HANDLER "'.$tag.'": '.$tmpl->text());
+        $tmpl->reset_tokens();
     }
-    $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
+    # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
+    $tmpl->reset_tokens();
     $logger->debug('TEXT AFTER ALL HANDLERS: '.( my $text = $tmpl->text()));
     
-    # $tmpl->reset_markers;
     # $tmpl->reflow( $tmpl->tokens() );
     # $tmpl->text( MT->model('templateupgrader_builder')->reflow( $tmpl ) || '' );
     # $tmpl->text( $text );

@@ -50,9 +50,10 @@ sub hdlr_default {
     my $tag    = $node->tagName;    
     ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     ##l4p $logger->debug('In handler for '.$tag);
-    process_attributes( $node ) && $node->tagName( $newtag );
+    my @nodes = process_attributes( $node );
+    $node->tagName( $newtag );
     ##l4p $logger->debug('Leaving handler for '.$tag);
-    __PACKAGE__->report( $node );
+    __PACKAGE__->report( @nodes > 1 ? [ @nodes ] : shift @nodes );
 }
 
 sub process_attributes {
@@ -233,6 +234,7 @@ sub process_attributes {
     # Remove all current attributes from the current node
     $node->removeAttribute( $_ ) foreach grep { $_ ne '_attr_order' } keys %$node_attr;
 
+    my $prepend;
     foreach my $set ( @attr_sets ) {
         if ( $set->{type} eq 'val' ) {
             $node->setAttribute( $set->{op}, $set->{val} );
@@ -244,30 +246,34 @@ sub process_attributes {
         }
         else {
             my $tok        = $set->{token};
-            $logger->debug('TOKEE: ', l4mtdump($tok));
-            my @tok_order = split(',', $tok->[1]{_attr_order});
-            
+            $logger->debug('TOKEE: '.$tok->dump_node());
+            my @tok_order = split(',', $tok->[1]{_attr_order}||'');
+             
             if ( keys %{ $tok->[1] } > 2 ) { # e.g. A modifier on GetVar 
                 
                 # We have to prepend a setvar assignment node to handle the
                 # of the tag/var attribute
                 my $prepend_attr = {
-                    map { $_ => $tok->getAttribute($_) } @tok_order,
-                    setvar => 'compare_val'
+                    (map { $_ => $tok->getAttribute($_)||'' } @tok_order),
                 };
-                my $prepend = $tmpl->createElement( 'var', $prepend_attr );
+                $prepend_attr->{setvar}      = 'compare_val';
+                $prepend_attr->{_attr_order}
+                    = join(',',$tok->[1]{_attr_order},'setvar');
+                $prepend = $tmpl->createElement( 'var', $prepend_attr );
                 ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
 
+                foreach my $k ( @tok_order, 'setvar' ) {
+                    $prepend->setAttribute( $k, $prepend_attr->{$k} );
+                    next if $k eq '_attr_order';
+                    push( @{$prepend->[4]}, [ $k, $prepend_attr->{$k} ])
+                }
                 my $inserted = $tmpl->insertBefore( $prepend, $node );
-                $prepend->setAttribute( $_, $prepend_attr->{$_} )
-                    foreach @tok_order, 'setvar';
                 ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
 
-                $node->setAttribute( 'name', 'compare_val' );
-
-                my @node_order = split(',', $node->[1]{_attr_order});
                 # $node->setAttribute( 'tag', $tok->tagName )
                 #     if $set->{type} eq 'tag';
+                $node->setAttribute( 'name', 'compare_val' );
+                my @node_order = split(',', $node->[1]{_attr_order}||'');
                 $node->setAttribute( $_, $tok->getAttribute($_) )
                     foreach grep { $_ ne 'tag' and $_ ne 'name' } @node_order;
                 ###l4p $logger->debug('PROCATTR NODE: '. $node->dump_node());
@@ -283,7 +289,7 @@ sub process_attributes {
                 # $node->setAttribute( $_, $tok->getAttribute($_) )
                 #     foreach keys %{ $tok->[1] };
                     # unshift @args, 'tag', $set->{token}->tagName;
-                $logger->debug('NODEE: ', l4mtdump($node));
+                $logger->debug('NODEE: '.$node->dump_node());
 
                 # foreach my $k ( qw( name tag )) {
                 #     next unless exists $node->[1]{$k};
@@ -292,8 +298,9 @@ sub process_attributes {
             }
         }
     }
-    ###l4p $logger->debug($node->tagName.' FINAL ATTRIBUTES: ', l4mtdump($node->[1]));
-    
+    ###l4p $logger->debug($node->tagName.' FINAL NODE: '.$node->dump_node());
+    ###l4p $logger->debug($node->tagName.' FINAL PREPEND: '.$prepend->dump_node()) if $prepend;
+    return ( $node, $prepend );
     1;
 }
 

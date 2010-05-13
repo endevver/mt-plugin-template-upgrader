@@ -130,6 +130,10 @@ sub reflow {
                     ### DOC: Delete it from the attribute hash
                     delete $attrh->{$a->[0]};
                     my $v = $a->[1];
+                    if ( ! defined $v ) {
+                        $logger->warn('Found an uninitialized attribute value for '.$a->[0].': '.$token->dump_node() );
+                        next;
+                    }
                     ### DOC: Properly quote the value based on existing quotes
                     $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
                     ### DOC: Assemble the attribute/value string and append
@@ -140,7 +144,10 @@ sub reflow {
                 foreach my $a (@attr_order) {
                     ### DOC: Delete it from the attribute hash
                     my $v = delete $attrh->{$a};
-                    next unless defined $v;
+                    if ( ! defined $v ) {
+                        $logger->warn("Found an uninitialized attribute value for $a: ".$token->dump_node() );
+                        next;
+                    }
                     ### DOC: Properly quote the value based on existing quotes
                     $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
                     ### DOC: Assemble the attribute/value string and append
@@ -226,7 +233,7 @@ sub NODE_FUNCTION () { 3 }
 sub dump_node {
     my $node     = shift;
     my @elements = @_ || ( 0..4 );
-    return Dumper( @{$node}[@elements] );
+    return Dumper([ @{$node}[@elements] ]);
 }
 
 sub nodeType {
@@ -323,4 +330,119 @@ __END__
 #   [4] = attributes arrayref
 #   [5] = parent array reference
 #   [6] = containing template
+
+
+
+=head1 NAME
+
+TemplateUpgrader::Template - A subclass of MT::Template for TemplateUpgrader
+
+=head1 METHODS
+
+=over 4
+
+=item * $tmpl->reflow( \@tokens || $tmpl->tokens )
+    
+    Reconstitute text of template based on tokens
+    Iterates over given/loaded tokens doing the following
+        Text nodes:  Append to string
+        All others:  Create the MT tag
+                        If attribute arrayref ($token->[4]) exists
+                           Iterate over attribute array
+                               Delete key from the attribute hash
+                               Appending key/val
+                           Iterate over remaining attribute hash keys
+                               Appending key/val
+                      For container tags:
+                           Reflow the inner contents $node->[2]
+                           Create the closing tag
+
+=item * $tmpl->text
+=item * $tmpl->text( $text )
+
+    $tmpl->text() WITH $tmpl->{reflow_flag} set
+        $tmpl->reflow
+        Saving output template text to the text column
+        $tmpl->reset_tokens;
+        Returns $text
+
+    $tmpl->text( $text ) WITHOUT $tmpl->{reflow_flag} set
+        Save provided template text to the text column
+        Return text
+
+    $tmpl->text() WITHOUT $tmpl->{reflow_flag} set
+        Return text
+        $tmpl->reflow
+        $text = $tmpl->SUPER::text(@_);
+        $tmpl->reset_tokens;
+        returns $text
+
+
+=item *  $tmpl->compile
+
+        Calls $builder->compile($tmpl)
+        Returns $tmpl->{__tokens}
+
+=item *  $tmpl->reset_tokens()
+
+    Undefines the tokens
+
+=item * $tmpl->tokens
+=item * $tmpl->tokens( @tokens )
+
+    Returns $tmpl->{__tokens} if set
+    Or a freshly compiled set of tokens from $tmpl->compile
+
+    $tmpl->tokens( @tokens)
+        Sets internal $tmpl->{__tokens} 
+
+=item *  $tmpl->insertAfter( $node1, ( $node2 || $tmpl ) )
+
+    Insert $node1 after $node2
+
+=item *  $tmpl->insertBefore( $node1, ( $node2 || $tmpl ) )
+
+    Insert $node1 before $node2
+
+=item * $tmpl->appendChild
+
+    Appends submitted node to the template's array of child nodes
+    Sets $tmpl->{reflow_flag}
+
+=back
+
+=head1 TemplateUpgrader::Template METHODS
+
+=over 4
+
+=item * $node->setAttribute(key, val)
+
+    ONLY sets the attr hash ($node->[1])
+
+=item * $node->getAttribute(key, val)
+
+    ONLY gets the attr hash ($node->[1])
+
+=item * $node->nodeValue
+
+    For text nodes, returns text
+    For container tags returns inner nodes
+    For all else undef
+
+=item * $node->innerHTML()
+=item * $node->innerHTML( $text )
+
+    ALWAYS returns $node->[3]
+    If given an extra parameter ($text?)
+        It stuffs it into $node->[3]
+        Compiles it and stuffs it into $node->[2]
+        Sets $tmpl->{reflow_flag} = 1;
+
+=item * $node->appendChild( $new_node )
+
+    Appends submitted node to its array of child nodes
+    Sets $tmpl->{reflow_flag}
+
+=cut
+
 
