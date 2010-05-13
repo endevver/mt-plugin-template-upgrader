@@ -5,6 +5,8 @@ use warnings;
 use Carp;
 use Data::Dumper;
 
+sub PLUGIN() { 'Compare' }
+
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
@@ -39,8 +41,7 @@ BEGIN {
                     if_not_equal if_greater if_less_or_equal   );
 
     # Tags we don't transform
-    *${\"hdlr_$_"} = sub { __PACKAGE__->report_skipped() }
-        foreach qw( ifnotbetween  ifbetween  ifbetweenexclusive );
+    #    ifnotbetween  ifbetween  ifbetweenexclusive
 }
 
 sub hdlr_default {
@@ -51,6 +52,7 @@ sub hdlr_default {
     ##l4p $logger->debug('In handler for '.$tag);
     process_attributes( $node ) && $node->tagName( $newtag );
     ##l4p $logger->debug('Leaving handler for '.$tag);
+    __PACKAGE__->report( $node );
 }
 
 sub process_attributes {
@@ -58,8 +60,11 @@ sub process_attributes {
     my $node_attr = $node->[1];
     my $tmpl      = $node->template;
     my $upgrader  = TemplateUpgrader->new();
-    my $op        = $operators{ lc($node->tagName) } or return;
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+
+    my $op        = $operators{ lc($node->tagName) }
+        or return __PACKAGE__->report_skipped($node,
+                                'Skipping node due to unrecognized tag');
 
     # We don't deal with the case_sensitive, number or  
     # numbered 'b' attributes (e.g. b1, b2, b3, etc)
@@ -74,16 +79,18 @@ sub process_attributes {
                     )$                      #
                 }xi 
             } keys %$node_attr ) {
-        ###l4p $logger->info('Skipping '.$node->tagName.' node');
-        return 0;
+        return __PACKAGE__->report_skipped( $node, 'Skipping '.$node->tagName.' node' );
     }
-    elsif ( keys %$node_attr > 2 ) {
-        ###l4p $logger->info('Skipping '.$node->tagName.' node. Too many attributes.');
-        return 0;
+
+    my $attr_count = grep { $_ ne '_attr_order' } keys %$node_attr;
+
+    if ( $attr_count > 2 ) {
+        return __PACKAGE__->report_skipped( $node, 'Skipping '.$node->tagName
+                                .' node. Too many attributes.' );
     }
-    elsif ( keys %$node_attr < 2 ) {
-        ###l4p $logger->info('Skipping '.$node->tagName.' node. Not enough attributes.');
-        return 0;
+    elsif ( $attr_count < 2 ) {
+        return __PACKAGE__->report_skipped( $node, 'Skipping '.$node->tagName
+                                .' node. Not enough attributes.' );
     }
 
     # Possible combinations for attributes a & b between a tag (If tag="")
@@ -104,6 +111,7 @@ sub process_attributes {
 
     my ( @attr_sets );
     foreach my $attr ( keys %$node_attr ) {
+        next if $attr eq '_attr_order';
 
         # Attribute values like a="[MTGetVar name='what']"
         #                    or a="[MTFoo format='1' iso='1']"
@@ -120,8 +128,7 @@ sub process_attributes {
 
             my $tok = $upgrader->compile_markup( '<'.$1.'>' );
             if ( ! defined $tok ) {
-                ###l4p $logger->warn('Skipping tag due to compilation error');
-                return 0;
+                return __PACKAGE__->report_skipped($node, 'Skipping tag due to compilation error');
             }
 
             ###l4p $logger->debug($node->tagName .' PARSED ATTRIBUTE: ', l4mtdump({
@@ -145,9 +152,33 @@ sub process_attributes {
 
     if (    $attr_sets[0]{type} eq 'val'
         and $attr_sets[1]{type} eq 'val' ) {
-        ###l4p $logger->info('Skipping node. '.$node->tagName
-        ###l4p               .' used two scalar values (no tag/variable)');
-        return 0;
+
+        # We have to add a setvar assignment node for the 'b' case.
+        my $prepend_attr = { name => 'compare_val', value => $attr_sets[0]{val} };
+        my $prepend = $tmpl->createElement( 'var', $prepend_attr );
+        ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
+
+        my $inserted = $tmpl->insertBefore( $prepend, $node );
+        $prepend->prependAttribute( 'value', $attr_sets[0]{val} );
+        $prepend->prependAttribute( 'name', 'compare_val' );
+        ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
+
+        # The b attributes becomes an interpolated template variable
+        # set by the setvar attribute of the prepended node above
+        # $node->prependAttribute( 'name', $attr_sets[0]{val} );
+        $node->setAttribute( 'name', $attr_sets[0]{val} );
+        ###l4p $logger->debug('PROCATTR NODE: '. $prepend->dump_node());
+
+        $attr_sets[0]{type} = 'var';
+        $attr_sets[0]{val}  = 'compare_val';
+        delete $attr_sets[0]{op};
+        $attr_sets[1]{type} = 'val';
+        $attr_sets[1]{op}   = $op;
+        # $attr_sets[1]{val}  = '$compare_val'; # $ for variable interpolation
+        ###l4p $logger->debug('PROCATTR attr_sets: ', l4mtdump(@attr_sets));
+
+        # return __PACKAGE__->report_skipped($node, 'Skipping node. '.$node->tagName
+        #                     .' used two scalar values (no tag/variable)');
     }
 
 
@@ -158,15 +189,15 @@ sub process_attributes {
         my $tok  = $attr_sets[1]{token};
         my $tag  = $tok->tagName;
         # We have to add a setvar assignment node for the 'b' case.
-        my $prepend_attr = { setvar => 'mt'.lc($tag) };
+        my $prepend_attr = { setvar => 'tag_mt'.lc($tag) };
         my $prepend = $tmpl->createElement( lc($tag), $prepend_attr );
         my $inserted = $tmpl->insertBefore( $prepend, $node );
-        $prepend->setAttribute('setvar', 'mt'.lc($tag));
+        $prepend->setAttribute('setvar', 'tag_mt'.lc($tag));
         # The b attributes becomes an interpolated template variable
         # set by the setvar attribute of the prepended node above
         $attr_sets[1]{type} = 'val';
         $attr_sets[1]{op}   = $op;
-        $attr_sets[1]{val}  = '$mt'.lc($tag); # $ for variable interpolation
+        $attr_sets[1]{val}  = '$tag_mt'.lc($tag); # $ for variable interpolation
     }
     # From combination chart above
     #   var tag      FLIP!
@@ -200,11 +231,15 @@ sub process_attributes {
     ###l4p $logger->debug('@attr_sets: ', l4mtdump(\@attr_sets));
 
     # Remove all current attributes from the current node
-    $node->removeAttribute( $_ ) foreach keys %$node_attr;
+    $node->removeAttribute( $_ ) foreach grep { $_ ne '_attr_order' } keys %$node_attr;
 
     foreach my $set ( @attr_sets ) {
         if ( $set->{type} eq 'val' ) {
             $node->setAttribute( $set->{op}, $set->{val} );
+            # push @{ $node->[4] }, [ $set->{op}, $set->{val} ];
+        }
+        elsif ( $set->{type} eq 'var' and ! $set->{token} ) {
+            $node->setAttribute( 'name', $set->{val} );
             # push @{ $node->[4] }, [ $set->{op}, $set->{val} ];
         }
         else {
@@ -226,24 +261,24 @@ sub process_attributes {
     1;
 }
 
-# This demonstrates modification of order-sensitive attributes based on a condition
-#
-# sub hdlr_include {
-#     my $node = shift;
-# 
-#     # If we're including a module...
-#     if ( defined $node->getAttribute('module') ) {
-# 
-#         # Set the woohoo attribute
-#         $node->setAttribute('woohoo', 1);
-# 
-#         # Set the ordering of the attributes, if needed
-#         $node->[4] = [
-#                         [ 'module' => $node->getAttribute('module') ],
-#                         [ 'woohoo' => $node->getAttribute('woohoo') ]
-#                     ];
-#     }
-# }
+sub report {
+    my $self               = shift;
+    my ( $node, $message ) = @_;
+    $self->SUPER::report({
+        plugin  => PLUGIN,
+        node    => $node,
+        message => ($message||'')
+    });
+}
 
+sub report_skipped {
+    my $self               = shift;
+    my ( $node, $message ) = @_;
+    $self->SUPER::report_skipped({
+        plugin  => PLUGIN,
+        node    => $node,
+        message => ($message||'')
+    });
+}
 
 1;

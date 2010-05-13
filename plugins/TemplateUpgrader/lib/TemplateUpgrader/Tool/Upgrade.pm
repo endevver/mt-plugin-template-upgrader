@@ -3,6 +3,7 @@ use strict; use warnings; use Carp; use Data::Dumper;
 
 use Getopt::Long qw( :config auto_version auto_help );
 use Pod::Usage;
+use Sub::Install;
 
 $| = 1;
 use vars qw( $VERSION @ISA $timer );
@@ -121,90 +122,35 @@ sub init_options {
             $app->show_usage({
                 -exitval => 2,
                 -verbose => 0,
-                -message => 'Error: No template data found.'
+                -message => 'Error: No template code found.'
             });
         }
-        my $tmpl = MT->model('template')->new();
-        $tmpl->name( 'Unnamed template from '
-                    . ($options->{stdin} ? 'STDIN' : $file));
-        $tmpl->text( $text );
-        $options->{template} = $tmpl;
+
+        $options->{template} = \$text;
     }
     $options;
 }
 
-sub mode_default {
-    my $app      = shift;
-    my $blog     = $app->param('blog');
-    my $template = $app->param('template');
+sub pre_run {
+    my $app = shift;
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    $app->SUPER::pre_run(@_);
 
     $app->initialize_default_handler();
+
+}
+
+
+sub mode_default {
+    my $app      = shift;
+    my $blog     = $app->blog || $app->param('blog_id'); # Can be 0
+    my $template = $app->param('template');
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     require MT::Util::ReqTimer;
     $timer = MT::Util::ReqTimer->new( join('-', __PACKAGE__, $$) );
 
-    my $tmpl_iter;
-
-    # Load the blog if blog parameter is given
-    if ( defined $blog and ! ref $blog) {
-        $blog = $app->load_by_name_or_id('blog', $blog, 1);
-    }
-
-    # If no template parameter is given, we 
-    # iterate through all of the blog templates
-    if ( ! defined $template ) {
-        $tmpl_iter = MT->model('template')->load_iter({
-            blog_id => $blog->id
-        });
-    }
-    # If the template parameter looks like a template object
-    elsif ( ref $template and $template->isa( MT->model('template') ) ) { 
-        my @templates = ( $template );
-        require Data::ObjectDriver::Iterator;
-        $tmpl_iter = Data::ObjectDriver::Iterator->new(
-                        sub { shift ( @templates ) } );
-    }
-    # If the template parameter looks like an ID, we try to load it
-    elsif ( $template =~ m{^[0-9]+$} ) { 
-        $template   = $app->load_by_name_or_id('template', $template, 1);
-        $blog     ||= $template->blog;
-        # Check that template blog ID matches the blog ID
-        # If not, reset $template to the original parameter value
-        if ( $blog->id != $template->blog->id ) {
-            $template = $app->param('template');
-        }
-        else {
-            my @templates = ( $template );
-            require Data::ObjectDriver::Iterator;
-            $tmpl_iter = Data::ObjectDriver::Iterator->new(
-                            sub { shift ( @templates ) } );
-        }
-    }
-
-    # If given an template parameter that is still not loaded,
-    # load it using the blog terms.
-    if ( ! $tmpl_iter ) {
-        $blog or $app->show_usage(
-                     'Error: If you only specify a template parameter, '
-                    .'it must be a valid template ID.'
-                );
-
-        my %blog_terms = ( blog_id => $blog->id );
-        $tmpl_iter = MT->model('template')->load_iter([
-            {
-                id         => $template, %blog_terms
-            }
-                => -or =>
-            {
-                identifier => $template, %blog_terms
-            }
-                => -or =>
-            {
-                name       => $template, %blog_terms
-            }
-        ]);
-    }
+    my $tmpl_iter = $app->get_template_iter( $blog, $template );
 
     my $text;
     while ( my $tmpl = $tmpl_iter->() ) {
@@ -214,6 +160,80 @@ sub mode_default {
     return "Upgrade completed in ".$timer->total_elapsed." seconds.\n";
 }
 
+
+sub get_template_iter {
+    my $app = shift;
+    my ( $blog, $template ) = @_;
+    my $blog_id = ref $blog ? $blog->id : $blog;
+    my $template_orig = $template;
+
+    # NO TEMPLATE PARAMETER - UPGRADE ALL BLOG's TEMPLATES
+    # If no template parameter is given, return an iterator 
+    # right away for all of the blog's non-backup templates
+    if ( ! defined $template ) {
+        return MT->model('templateupgrader_template')->load_iter({
+            blog_id => ref $blog ? $blog->id : $blog,
+            type    => { not => 'backup' } 
+        });
+    }
+
+    require Data::ObjectDriver::Iterator;
+    my $iterator_for = sub {
+        my @objs = @_;
+        return Data::ObjectDriver::Iterator->new( sub { shift ( @objs ) } );
+    };
+
+    #### SCALAR REFERENCE OF TEMPLATE TEXT ####
+    # If we have a scalar ref of template text, make 
+    # a template object from the dereferenced text    
+    if ( 'SCALAR' eq ref $template ) {
+        return $iterator_for->(
+            TemplateUpgrader->new_template({
+                type => 'scalarref', source => $template,
+                name => 'Unnamed in-memory template'
+            })
+        );
+    }
+
+    #### A TEMPLATE ID ####
+    # If the template parameter looks like an ID, we try to load it
+    if ( $template =~ m{^[0-9]+$} ) { 
+        $template = $app->load_by_name_or_id('template', $template, 1);
+        $blog     = $template->blog_id unless defined $blog;
+        # Check that template blog ID matches the blog ID and return iter
+        if ( $blog_id == $template->blog_id ) {
+            $app->blog($blog) if $blog;
+            return $iterator_for->( $template )
+        }
+        # If not, reset $template to the original parameter value
+        $template = $template_orig;
+    }
+
+    #### A TEMPLATE NAME OR IDENTIFIER ####
+    # If given an template parameter that is still not loaded,
+    # load it using the blog terms.
+    defined $blog_id
+        or $app->show_usage(
+                 'Error: If you only specify a template parameter, '
+                .'it must be a valid template ID.'
+            );
+
+    my %blog_terms = ( blog_id => $blog_id );
+    return MT->model('templateupgrader_template')->load_iter([
+        {
+            id         => $template, %blog_terms
+        }
+            => -or =>
+        {
+            identifier => $template, %blog_terms
+        }
+            => -or =>
+        {
+            name       => $template, %blog_terms
+        }
+    ]);
+}
+
 sub upgrade_template {
     my $app     = shift;
     my $tmpl    = shift;
@@ -221,30 +241,39 @@ sub upgrade_template {
     $handlers ||= $app->registry('tag_upgrade_handlers') || {};
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
+    return 0 if $tmpl->type eq 'backup';
+
     my $upgrader = TemplateUpgrader->new({ handlers => $handlers });
     $tmpl        = $upgrader->upgrade( $tmpl );
 
     my $new = $tmpl->text || '';
+    my $is_modified = ( $new ne $orig );
+    
+    my $msg = sprintf(
+        '%-10d %-10s Template %s modified %s/%s%s',
+        ($app->blog ? $app->blog->id : 0), 
+        ($tmpl->id || 0),
+        ($is_modified ? 'is' : 'not'),
+        ucfirst($tmpl->type),
+        $tmpl->name,
+        ($app->param('upgrade') ? '' : ' (Not saved, dry-run)')
+    );
+    print $msg."\n" and $logger->info( $msg );
 
-    if ( $new eq $orig ) {
-        my $msg = sprintf('%-10d %-10s Template not modified: %s/%s',
-                    $app->blog->id, $tmpl->id, ucfirst($tmpl->type), $tmpl->name );
-        print $msg."\n" and $logger->info( $msg );
-        return 0;
-    }
+    return 0 unless $is_modified;
 
-    ###l4p if ( $app->param('debug') && $logger->is_debug() ) {
-    ###l4p      $logger->debug('Template "'.$tmpl->name.'" $orig template: ', $orig);
-    ###l4p      $logger->debug('Template "'.$tmpl->name.'" $new template: ', $new);
-    ###l4p      require HTML::Diff;
-    ###l4p      import HTML::Diff qw(html_word_diff);
-    ###l4p      $logger->debug(
-    ###l4p          'Template diff for '.$tmpl->name.' (ID:'.($tmpl->id||0).'): ',
-    ###l4p          l4mtdump(html_word_diff( $orig, $new ))
-    ###l4p      );
-    ###l4p }
 
     if ( $app->param('debug') ) {
+        ###l4p if ( $logger->is_debug() ) {
+        ###l4p      $logger->debug('Template "'.$tmpl->name.'" $orig template: ', $orig);
+        ###l4p      $logger->debug('Template "'.$tmpl->name.'" $new template: ', $new);
+        ###l4p      require HTML::Diff;
+        ###l4p      import HTML::Diff qw(html_word_diff);
+        ###l4p      $logger->debug(
+        ###l4p          'Template diff for '.$tmpl->name.' (ID:'.($tmpl->id||0).'): ',
+        ###l4p          l4mtdump(html_word_diff( $orig, $new ))
+        ###l4p      );
+        ###l4p }
         printf "%s\n%s TEMPLATE \"%s\" (ID:%d)\n",
             ('='x50), ucfirst($tmpl->type), $tmpl->name, ($tmpl->id||0);
         printf "ORIGINAL template: %s\n", $orig;
@@ -263,8 +292,18 @@ sub upgrade_template {
         $tmpl->text( $new );
         $tmpl->save;
 
-        printf "%s template \"%s\" (ID:%s) upgraded.\n",
-            ucfirst($tmpl->type), $tmpl->name, $tmpl->id;
+        my $msg = sprintf(
+            '%-10d %-10s Template upgraded: %s',
+            $app->blog->id, 
+            $tmpl->id,
+            $tmpl->name
+        );
+        print $msg."\n" and $logger->info( $msg );
+        # require HTML::Diff;
+        # import HTML::Diff qw(html_word_diff);
+        # printf "TEMPLATE DIFF:\n%s\n",
+        #     Dumper(html_word_diff($orig, $new));
+
     }
 
     return 1;

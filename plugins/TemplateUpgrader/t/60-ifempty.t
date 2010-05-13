@@ -26,10 +26,10 @@ __DATA__
                 "e" : "<mt:unless tag=\"CGIPath\" eq=\"\">yaycgipath</mt:unless>"}, #4
 
 { "r" : "1",    "t" : "<MTIfEmpty var=\"Date\">Nodate<MTElse>Yaydate</MTElse></MTIfEmpty>",
-                "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:Else>Yaydate</mt:Else></mt:if>"}, #5
+                "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:else>Yaydate</mt:if>"}, #5
 
 { "r" : "1",    "t" : "<MTIfEmpty var=\"Date\">Nodate<mt:Else>Yaydate</MTIfEmpty>",
-                "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:Else>Yaydate</mt:Else></mt:if>"}, #6
+                "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:else>Yaydate</mt:if>"}, #6
 
 { "r" : "1",    "t" : "<MTIfNotEmpty var=\"CGIPath\">yaycgipath</MTIfNotEmpty>",
                 "e" : "<mt:unless tag=\"CGIPath\" eq=\"\">yaycgipath</mt:unless>"} #7

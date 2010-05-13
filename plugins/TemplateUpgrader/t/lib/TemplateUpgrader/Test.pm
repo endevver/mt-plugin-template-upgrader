@@ -16,8 +16,6 @@ use Data::Dumper;
 # use MT::Test qw(:db :data);
 use Test::More;
 use MT;
-use MT::Template::Context;
-use MT::Builder;
 
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
@@ -27,28 +25,60 @@ __PACKAGE__->mk_classdata(qw( handlers ));
 
 $| = 1;
 
-use TemplateUpgrader;
-
 sub run {
     my $class = shift;
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     my $num = 1;
-    my $mt  = MT->new();
+    # my $mt  = MT->new();
+    my $mt = MT->instance( Config => 'mt-config.cgi' ) or die MT->errstr;
+    my $registry = $mt->registry()
+        or die "Failed initialization of MT registry";
 
     unless ( $class->handlers ) {
-        $class->handlers( MT->registry('tag_upgrade_handlers') || {} );
+        $class->handlers( $registry->{tag_upgrade_handlers} || {} );
         ###l4p $logger->debug('$class->handlers: ', l4mtdump($class->handlers));
     }
 
+    # Add in our templateupgrader_template object type
+    # which is a subclass of MT::Template
+    # $registry->{object_types}{templateupgrader_template}
+    #     = 'TemplateUpgrader::Template';
+
+    # my $tmpl_class = MT->model('templateupgrader_template');
+    # $TemplateUpgrader::Template::ORIG_NEW_METHOD
+    #     = MT->model('template')->can('new');
+    # 
+    # my $rc = Sub::Install::reinstall_sub({
+    #     code => '_new',
+    #     from => $tmpl_class,
+    #     into => 'MT::Template',
+    #     as   => 'new',
+    # });
+    # 
+    # my $tmpl = MT::Template->new();
+    # die $tmpl;
+
+
+    my $report = sub {
+        my $marker = (' 'x9).('*'x4).' ';
+        return $marker.($_[0] ? 'PASS' : 'FAIL').(reverse $marker);
+    };
+    
+    require TemplateUpgrader;
+    my $upgrader = TemplateUpgrader->new({ handlers => $class->handlers });
     while ( defined( my $test = $class->get_test() ) ) {
          if ( $test->{r} ) {
+
+            # my $result = $class->transform( $test->{t} );
+            my $result = $upgrader->upgrade( $test->{t} );
+            my $pass   = is( $result, $test->{e}, "perl test " . $num++ );
+
             ###l4p $logger->debug( 'NEXT TEST for '. $class );
             ###l4p $logger->debug( '    GIVEN: '. $test->{t} );
             ###l4p $logger->debug( ' EXPECTED: ', $test->{e} );
-
-            my $result = $class->transform( $test->{t} );
-            is( $result, $test->{e}, "perl test " . $num++ );
+            ###l4p $logger->debug( '      GOT: ', $result );
+            ###l4p $logger->debug( $report->($pass) );
         }
         else {
             ###l4p $logger->debug('SKIPPING TEST: '.$test->{t} );
@@ -114,3 +144,15 @@ sub transform {
 }
 
 1;
+
+__END__
+
+# Structure of a node:
+#   [0] = tag name
+#   [1] = attribute hashref
+#   [2] = contained tokens
+#   [3] = template text
+#   [4] = attributes arrayref
+#   [5] = parent array reference
+#   [6] = containing template
+

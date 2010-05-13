@@ -242,113 +242,98 @@ __DATA__
 [
 { "r" : "1", "t" : "", "e" : ""}, #1
 
-{ "r" : "0",    "t" :  "<$mt:SetVar name=\"hello\" value=\"kitty\"$>", 
-                "e" : "<mt:var value=\"kitty\" name=\"hello\">"},           #2
-
-{ "r" : "1",    "t" : "<MTGetVar name=\"hello\">",
-                "e" : "<mt:var name=\"hello\">"},                           #3
-
-{ "r" : "0",    "t" : "<MTIfOne name=\"hello\">1</MTIfOne>",
-                "e" : "<mt:if name=\"hello\" eq=\"1\">1</mt:if>"},          #4
-
-{ "r" : "0",    "t" : "<MTUnlessZero name=\"hello\">1</MTUnlessZero>",
-                "e" : "<mt:ifnonzero name=\"hello\">1</mt:ifnonzero>"},     #5
-
-{ "r" : "0",    "t" : "<MTUnlessEmpty name=\"hello\">1</MTUnlessEmpty>",
-                "e" : "<mt:ifnonempty name=\"hello\">1</mt:ifnonempty>"},   #6
-
 { "r" : "1",    "t" : "<MTIfEqual a=\"VAL1\" b=\"VAL2\">yay!</MTIfEqual>",
-                "e" : "<mt:IfEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfEqual>"}, #7
+                "e" : "<mt:var name=\"compare_val\" value=\"VAL1\"><mt:if name=\"compare_val\" eq=\"VAL2\">yay!</mt:if>"}, #2
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfEqual>",
-                "e" : "<mt:if name=\"spanky\" eq=\"VAL2\">yay!</mt:if>"},   #8
+                "e" : "<mt:if name=\"spanky\" eq=\"VAL2\">yay!</mt:if>"},   #3
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfEqual>",
-                "e" : "<mt:if name=\"pooky\" eq=\"VAL0\">yay!</mt:if>"},    #9
+                "e" : "<mt:if name=\"pooky\" eq=\"VAL0\">yay!</mt:if>"},    #4
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfEqual>",
-                "e" : "<mt:if tag=\"CGIPath\" eq=\"$ophelia\">yay!</mt:if>"}, #10
+                "e" : "<mt:if tag=\"CGIPath\" eq=\"$ophelia\">yay!</mt:if>"}, #5
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfEqual>",
-                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" eq=\"$mtcgipath\">yay!</mt:if>"}, #11
+                "e" : "<mt:cgipath setvar=\"tag_mtcgipath\"><mt:if tag=\"CGIPath\" eq=\"$tag_mtcgipath\">yay!</mt:if>"}, #6
 
 { "r" : "1",    "t" : "<MTIfNotEqual a=\"VAL1\" b=\"VAL2\">yay!</MTIfNotEqual>",
-                "e" : "<mt:IfNotEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfNotEqual>"}, #12
+                "e" : "<mt:var name=\"compare_val\" value=\"VAL1\"><mt:if name=\"compare_val\" ne=\"VAL2\">yay!</mt:if>"}, #7
 
 { "r" : "1",    "t" : "<MTIfNotEqual a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfNotEqual>",
-                "e" : "<mt:if name=\"spanky\" ne=\"VAL2\">yay!</mt:if>"},   #13
+                "e" : "<mt:if name=\"spanky\" ne=\"VAL2\">yay!</mt:if>"},   #8
 
 { "r" : "1",    "t" : "<MTIfNotEqual a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfNotEqual>",
-                "e" : "<mt:if name=\"pooky\" ne=\"VAL0\">yay!</mt:if>"},    #14
+                "e" : "<mt:if name=\"pooky\" ne=\"VAL0\">yay!</mt:if>"},    #9
 
 { "r" : "1",    "t" : "<MTIfNotEqual a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfNotEqual>",
-                "e" : "<mt:if tag=\"CGIPath\" ne=\"$ophelia\">yay!</mt:if>"}, #15
+                "e" : "<mt:if tag=\"CGIPath\" ne=\"$ophelia\">yay!</mt:if>"}, #10
 
 { "r" : "1",    "t" : "<MTIfNotEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfNotEqual>",
-                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" ne=\"$mtcgipath\">yay!</mt:if>"}, #16
+                "e" : "<mt:cgipath setvar=\"tag_mtcgipath\"><mt:if tag=\"CGIPath\" ne=\"$tag_mtcgipath\">yay!</mt:if>"}, #11
 
 { "r" : "1",    "t" : "<MTIfLess a=\"VAL1\" b=\"VAL2\">yay!</MTIfLess>",
-                "e" : "<mt:IfLess a=\"VAL1\" b=\"VAL2\">yay!</mt:IfLess>"}, #17
+                "e" : "<mt:var name=\"compare_val\" value=\"VAL1\"><mt:if name=\"compare_val\" lt=\"VAL2\">yay!</mt:if>"}, #12
 
 { "r" : "1",    "t" : "<MTIfLess a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfLess>",
-                "e" : "<mt:if name=\"spanky\" lt=\"VAL2\">yay!</mt:if>"},   #18
+                "e" : "<mt:if name=\"spanky\" lt=\"VAL2\">yay!</mt:if>"},   #13
 
 { "r" : "1",    "t" : "<MTIfLess a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfLess>",
-                "e" : "<mt:if name=\"pooky\" lt=\"VAL0\">yay!</mt:if>"},    #19
+                "e" : "<mt:if name=\"pooky\" lt=\"VAL0\">yay!</mt:if>"},    #14
 
 { "r" : "1",    "t" : "<MTIfLess a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfLess>",
-                "e" : "<mt:if tag=\"CGIPath\" lt=\"$ophelia\">yay!</mt:if>"}, #20
+                "e" : "<mt:if tag=\"CGIPath\" lt=\"$ophelia\">yay!</mt:if>"}, #15
 
 { "r" : "1",    "t" : "<MTIfLess a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfLess>",
-                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" lt=\"$mtcgipath\">yay!</mt:if>"}, #21
+                "e" : "<mt:cgipath setvar=\"tag_mtcgipath\"><mt:if tag=\"CGIPath\" lt=\"$tag_mtcgipath\">yay!</mt:if>"}, #16
 
 { "r" : "1",    "t" : "<MTIfGreater a=\"VAL1\" b=\"VAL2\">yay!</MTIfGreater>",
-                "e" : "<mt:IfGreater a=\"VAL1\" b=\"VAL2\">yay!</mt:IfGreater>"}, #22
+                "e" : "<mt:var name=\"compare_val\" value=\"VAL1\"><mt:if name=\"compare_val\" gt=\"VAL2\">yay!</mt:if>"}, #17
 
 { "r" : "1",    "t" : "<MTIfGreater a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfGreater>",
-                "e" : "<mt:if name=\"spanky\" gt=\"VAL2\">yay!</mt:if>"},   #23
+                "e" : "<mt:if name=\"spanky\" gt=\"VAL2\">yay!</mt:if>"},   #18
 
 { "r" : "1",    "t" : "<MTIfGreater a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfGreater>",
-                "e" : "<mt:if name=\"pooky\" gt=\"VAL0\">yay!</mt:if>"},    #24
+                "e" : "<mt:if name=\"pooky\" gt=\"VAL0\">yay!</mt:if>"},    #19
 
 { "r" : "1",    "t" : "<MTIfGreater a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfGreater>",
-                "e" : "<mt:if tag=\"CGIPath\" gt=\"$ophelia\">yay!</mt:if>"}, #25
+                "e" : "<mt:if tag=\"CGIPath\" gt=\"$ophelia\">yay!</mt:if>"}, #20
 
 { "r" : "1",    "t" : "<MTIfGreater a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfGreater>",
-                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" gt=\"$mtcgipath\">yay!</mt:if>"}, #26
+                "e" : "<mt:cgipath setvar=\"tag_mtcgipath\"><mt:if tag=\"CGIPath\" gt=\"$tag_mtcgipath\">yay!</mt:if>"}, #21
 
 { "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"VAL1\" b=\"VAL2\">yay!</MTIfGreaterOrEqual>",
-                "e" : "<mt:IfGreaterOrEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfGreaterOrEqual>"}, #27
+                "e" : "<mt:var name=\"compare_val\" value=\"VAL1\"><mt:if name=\"compare_val\" ge=\"VAL2\">yay!</mt:if>"}, #22
 
 { "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfGreaterOrEqual>",
-                "e" : "<mt:if name=\"spanky\" ge=\"VAL2\">yay!</mt:if>"},   #28
+                "e" : "<mt:if name=\"spanky\" ge=\"VAL2\">yay!</mt:if>"},   #23
 
 { "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfGreaterOrEqual>",
-                "e" : "<mt:if name=\"pooky\" ge=\"VAL0\">yay!</mt:if>"},    #29
+                "e" : "<mt:if name=\"pooky\" ge=\"VAL0\">yay!</mt:if>"},    #24
 
 { "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfGreaterOrEqual>",
-                "e" : "<mt:if tag=\"CGIPath\" ge=\"$ophelia\">yay!</mt:if>"}, #30
+                "e" : "<mt:if tag=\"CGIPath\" ge=\"$ophelia\">yay!</mt:if>"}, #25
 
 { "r" : "1",    "t" : "<MTIfGreaterOrEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfGreaterOrEqual>",
-                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" ge=\"$mtcgipath\">yay!</mt:if>"}, #31
+                "e" : "<mt:cgipath setvar=\"tag_mtcgipath\"><mt:if tag=\"CGIPath\" ge=\"$tag_mtcgipath\">yay!</mt:if>"}, #26
 
 { "r" : "1",    "t" : "<MTIfLessOrEqual a=\"VAL1\" b=\"VAL2\">yay!</MTIfLessOrEqual>",
-                "e" : "<mt:IfLessOrEqual a=\"VAL1\" b=\"VAL2\">yay!</mt:IfLessOrEqual>"}, #32
+                "e" : "<mt:var name=\"compare_val\" value=\"VAL1\"><mt:if name=\"compare_val\" le=\"VAL2\">yay!</mt:if>"}, #27
 
 { "r" : "1",    "t" : "<MTIfLessOrEqual a=\"[MTGetVar name='spanky']\" b=\"VAL2\">yay!</MTIfLessOrEqual>",
-                "e" : "<mt:if name=\"spanky\" le=\"VAL2\">yay!</mt:if>"},   #33
+                "e" : "<mt:if name=\"spanky\" le=\"VAL2\">yay!</mt:if>"},   #28
 
 { "r" : "1",    "t" : "<MTIfLessOrEqual a=\"VAL0\" b=\"[MTGetVar name='pooky']\">yay!</MTIfLessOrEqual>",
-                "e" : "<mt:if name=\"pooky\" le=\"VAL0\">yay!</mt:if>"},    #34
+                "e" : "<mt:if name=\"pooky\" le=\"VAL0\">yay!</mt:if>"},    #29
 
 { "r" : "1",    "t" : "<MTIfLessOrEqual a=\"[MTCGIPath]\" b=\"[MTGetVar name='ophelia']\">yay!</MTIfLessOrEqual>",
-                "e" : "<mt:if tag=\"CGIPath\" le=\"$ophelia\">yay!</mt:if>"}, #35
+                "e" : "<mt:if tag=\"CGIPath\" le=\"$ophelia\">yay!</mt:if>"}, #30
 
 { "r" : "1",    "t" : "<MTIfLessOrEqual a=\"[MTCGIPath]\" b=\"[MTCGIPath]\">yay!</MTIfLessOrEqual>",
-                "e" : "<mt:cgipath setvar=\"mtcgipath\"><mt:if tag=\"CGIPath\" le=\"$mtcgipath\">yay!</mt:if>"}, #36
+                "e" : "<mt:cgipath setvar=\"tag_mtcgipath\"><mt:if tag=\"CGIPath\" le=\"$tag_mtcgipath\">yay!</mt:if>"}, #31
 
 { "r" : "1",    "t" : "<MTIfEqual a=\"[MTGetVar name='spanky' cat=' hiya']\" b=\"VAL2\">yay!</MTIfEqual>",
-                "e" : "<mt:if name=\"spanky\" cat=\" hiya\" eq=\"VAL2\">yay!</mt:if>"}   #37
+                "e" : "<mt:if name=\"spanky\" cat=\" hiya\" eq=\"VAL2\">yay!</mt:if>"}   #32
 
 
 # { "r" : "1", "t" : "<MTIfNotEqual a=\"VAL\" b=\"VAL\">1</MTIfNotEqual>", "e" : "<mt:if name=\"hello\" eq=\"1\">1</mt:if>"}, #7

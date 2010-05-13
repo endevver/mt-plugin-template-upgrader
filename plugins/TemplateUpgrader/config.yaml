@@ -7,6 +7,7 @@ author_link: http://endevver.com
 author_name: "Jay Allen, Endevver Consulting"
 
 tag_upgrade_handlers:
+    else:               $TemplateUpgrader::TemplateUpgrader::Handlers::Core::hdlr_else
     getvar:             $TemplateUpgrader::TemplateUpgrader::Handlers::Varz::hdlr_get_var
     ifone:              $TemplateUpgrader::TemplateUpgrader::Handlers::Varz::hdlr_if_one
     unlesszero:         $TemplateUpgrader::TemplateUpgrader::Handlers::Varz::hdlr_unless_zero
@@ -17,11 +18,9 @@ tag_upgrade_handlers:
     iflessorequal:      $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_default
     ifgreater:          $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_default
     ifgreaterorequal:   $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_default
-    ifnotbetween:       $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_not_between
-    ifbetween:          $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_between
-    ifbetweenexclusive: $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_between_exclusive
+    # ifnotbetween:       $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_not_between
+    # ifbetween:          $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_between
+    # ifbetweenexclusive: $TemplateUpgrader::TemplateUpgrader::Handlers::Compare::hdlr_if_between_exclusive
     ifempty:            $TemplateUpgrader::TemplateUpgrader::Handlers::IfEmpty::hdlr_default
     ifnotempty:         $TemplateUpgrader::TemplateUpgrader::Handlers::IfEmpty::hdlr_default
     ifcategoryarchivesenabled: $TemplateUpgrader::TemplateUpgrader::Handlers::CatCalendar::hdlr_default
-
-# TemplateUpgrader::Handlers::default_hdlr
