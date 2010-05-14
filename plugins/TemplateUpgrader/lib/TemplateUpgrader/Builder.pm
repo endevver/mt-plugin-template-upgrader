@@ -131,25 +131,24 @@ sub compile {
                     push @extra, $2 while $extra =~ m/[,:](["'])((?:<[^>]+?>|.)*?)\1/gs;
                     $value = [ $value, @extra ];
                 }
-                # We need a reference to the filters to check
-                # attributes and whether they need to be in the array of
-                # attributes for post-processing.
-                $mods ||= $ctx->{__filters};
-                push @args, [$attr, $value] if exists $mods->{$attr};
+
                 ###########################################################
                 ###############!!!! MAJOR CHANGE BELOW !!!!################
-                ### In order to perfectly preserve the order of attributes
-                ### RIGHT OR WRONG, we create a "stowaway" hash key
-                ### _attr_order which holds a comma-separated list of
-                ### attributes in their order of appearance.  We use this
-                ### later to reconstruct the tag argument list.
+                ###
+                ### Because it's imperative that we maintain the same
+                ### attribute order for all existing attributes (excepting
+                ### shifts caused by insertion of new ones or deletions of old
+                ### one), we will be tracking ALL attributes and their values
+                ### in array reference in the fourth node ($node->[4]). This
+                ### obsoletes the hash reference contained in the first node.
+                ### For expediency sake, we will still keep the same node
+                ### order but the hash reference is not guaranteed to be
+                ### correct for the purposes of this subclass/plugin.
+                ###
                 ##########################################################
-                my @attr_order = grep { $_ ne '_attr_order' }
-                                    split(',', $args{_attr_order} || '');
-                $args{_attr_order}
-                    = @attr_order ? join(',', @attr_order, $attr) : $attr;
-                ##########################################################
+                push @args, [$attr, $value];
                 $args{$attr} = $value;
+                ##########################################################
                 if ($attr eq 'id') {
                     # store a reference to this token based on the 'id' for it
                     $ids->{$3} = $rec;

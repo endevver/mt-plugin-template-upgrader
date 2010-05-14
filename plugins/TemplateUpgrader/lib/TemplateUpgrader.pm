@@ -69,14 +69,6 @@ sub new {
 
 sub init {
     my $self = shift;
-    # use Devel::Symdump;
-    # $Devel::Symdump::MAX_RECURSION = 10;
-    # my @packs = qw( TemplateUpgrader TemplateUpgrader::Test MT::Test );
-    # # my $obj = Devel::Symdump->new(@packs);        # no recursion
-    # my $obj = Devel::Symdump->rnew(@packs);       # with recursion
-    # 
-    # 
-    # print STDERR join("\n", $obj->functions);
     $self->bootstrap();
 }
 

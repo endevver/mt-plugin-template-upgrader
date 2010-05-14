@@ -1,51 +1,36 @@
 package TemplateUpgrader::Handlers::Varz;
-
-use strict;
-use warnings;
-use Carp;
-use Data::Dumper;
-
-sub PLUGIN() { 'MT-Varz' }
-
-use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
-###l4p our $logger = MT::Log::Log4perl->new();
+use strict; use warnings; use Carp; use Data::Dumper;
 
 use base qw( TemplateUpgrader::Handlers );
 
-# Rewrite GetVar to Var
-sub hdlr_get_var {
-    my $node = shift;
-    $node->tagName('Var');
-    __PACKAGE__->report( $node );
-}
+# use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
+###l4p our $logger = MT::Log::Log4perl->new();
 
-sub hdlr_set_var {
-    my $node = shift;
-    $node->tagName('Var');
-    __PACKAGE__->report( $node );
-}
+sub PLUGIN() { 'MT-Varz' }
 
-sub hdlr_if_one {
-    my $node = shift;
-    $node->tagName('If');
-    $node->appendAttribute('eq', 1);
-    __PACKAGE__->report( $node );
-}
+BEGIN {
 
-sub hdlr_unless_zero {
-    my $node = shift;
-    $node->tagName('Unless');
-    $node->appendAttribute('eq', 0);
-    __PACKAGE__->report( $node );
-}
+    my %dispatch = (
+        get_var      => sub {   $_[0]->tagName('Var')              },
 
-sub hdlr_unless_empty {
-    my $node = shift;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    # $logger->debug('$node BEFORE: ', l4mtdump($node));
-    $node->tagName('Unless');
-    $node->appendAttribute('eq', '');
-    __PACKAGE__->report( $node );
+        set_var      => sub {   $_[0]->tagName('Var')              },
+
+        if_one       => sub {   $_[0]->tagName('If');              
+                                $_[0]->appendAttribute('eq', 1)    },
+
+        unless_zero  => sub {   $_[0]->tagName('Unless');          
+                                $_[0]->appendAttribute('eq', 0)    },
+
+        unless_empty => sub {   $_[0]->tagName('Unless');          
+                                $_[0]->appendAttribute('eq', '')   },
+    );
+
+    foreach my $fn ( keys %dispatch ) {
+        *{'hdlr_'.$fn} = sub {
+            $dispatch{$fn}->( @_ );
+            __PACKAGE__->report([ @_ ])
+        }
+    }
 }
 
 1;

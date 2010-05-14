@@ -31,30 +31,3 @@ is( MT->model('templateupgrader_handlers'),
 is( MT->model('templateupgrader_builder'),
     'TemplateUpgrader::Builder',
     'TemplateUpgrader::Builder model');                                     #8
-# 
-# # print STDERR Dumper($app);
-# # print STDERR Dumper($app->registry);
-# # print STDERR Dumper();
-# # my $result = $upgrader->upgrade( $markup );
-# 
-# 
-# exit;
-# 
-# # sub init {
-# #     my $class = shift;
-# #     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-# # 
-# #     my $num = 1;
-# #     # my $app  = MT->new();
-# #     my $app = MT->instance( Config => 'mt-config.cgi' ) or die MT->errstr;
-# #     my $registry = $app->registry()
-# #         or die "Failed initialization of MT registry";
-# # 
-# #     unless ( $class->handlers ) {
-# #         $class->handlers( $registry->{tag_upgrade_handlers} || {} );
-# #         ###l4p $logger->debug('$class->handlers: ', l4mtdump($class->handlers));
-# #     }
-# #     $app;
-# # }
-# # 
-

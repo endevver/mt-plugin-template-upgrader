@@ -14,18 +14,22 @@ use List::Util qw( first );
 wrap *MT::Template::new, post => \&rebless;
 
 sub rebless { 
-    print STDERR "REBLESS ARG: $_\n" foreach @_;
-    my $self = first { defined and blessed } @_;
-    # my $self = ( @_ == 1 and blessed $_[0] )    ? $_[0] 
-    #          : ( @_ == 2 and )$_[-1];
-    # ref $self or $self = shift;
-    print STDERR "REBLESS SELF: $self\n";
-    # print STDERR "REBLESS -1: $_[-1]\n";
+    # print STDERR "REBLESS ARG: $_\n" foreach @_;
+    my $self = first { defined and blessed $_ } @_;
+    # print STDERR "REBLESS SELF: $self\n";
+    # print STDERR "----------------------------\n";
     bless $self, __PACKAGE__;
     return $self;
-    # return $self->isa( __PACKAGE__ ) ? $self
-    #      : bless $self, __PACKAGE__;
 }
+
+# END {
+#     use Devel::Symdump;
+#     $Devel::Symdump::MAX_RECURSION = 10;
+#     my @packs = qw( MT::Template MT::Template::Node TemplateUpgrader::Template TemplateUpgrader::Template::Node );
+#     my $obj = Devel::Symdump->new(@packs);        # no recursion
+#     # my $obj = Devel::Symdump->rnew(@packs);       # with recursion
+#     print STDERR join("\n", $obj->functions);
+# }
 
 sub NODE () { 'TemplateUpgrader::Template::Node' }
 sub NODE_TEXT ()     { 1 }

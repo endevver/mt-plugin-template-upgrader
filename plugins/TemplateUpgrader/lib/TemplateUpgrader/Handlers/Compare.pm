@@ -1,16 +1,13 @@
 package TemplateUpgrader::Handlers::Compare;
+use strict; use warnings; use Carp; use Data::Dumper;
 
-use strict;
-use warnings;
-use Carp;
-use Data::Dumper;
-
-sub PLUGIN() { 'Compare' }
+use base qw( TemplateUpgrader::Handlers );
 
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
-use base qw( TemplateUpgrader::Handlers );
+
+sub PLUGIN() { 'Compare' }
 
 our %operators = (
     ifequal          => 'eq',
@@ -80,7 +77,8 @@ sub process_attributes {
                     )$                      #
                 }xi 
             } keys %$node_attr ) {
-        return __PACKAGE__->report_skipped( $node, 'Skipping '.$node->tagName.' node' );
+        return __PACKAGE__->report_skipped(
+            $node, 'Skipping '.$node->tagName.' node' );
     }
 
     my $attr_count = grep { $_ ne '_attr_order' } keys %$node_attr;

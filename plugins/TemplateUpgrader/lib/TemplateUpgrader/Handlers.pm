@@ -1,43 +1,66 @@
 package TemplateUpgrader::Handlers;
-
-use strict;
-use warnings;
-use Carp;
-use Data::Dumper;
+use strict; use warnings; use Carp; use Data::Dumper;
 
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
-
 sub default_hdlr {
     my ($self, $node, $params ) = @_;
+    $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    $logger->warn('default_hdlr usage detected '.Carp::longmess());
     $self->_report( { node => $node, %$params }, 'SKIPPED' );
 }
 
-sub _report {
-    my ( $self, $params, $skipped ) = @_;
-    my $node    = $params->{node};
-    my $prepend = $params->{prepend};
-    my $tmpl    = $node->ownerDocument;
-    my $blog    = $tmpl->blog;
+sub report {
+    my $self = shift;
+    my ( $nodes, $message ) = @_;
+    my $plugin = $self->PLUGIN();
+    my $skipped = 0;
+
+    # Massage the polymorphic data into a nice hashref. Data from the
+    # report_skipped function is already a hash reference with an
+    # extra skip key, which we'll save in $skipped
+    my $data;
+    if ( ref $nodes eq 'HASH' and $nodes->{skip} ) {
+        $skipped = delete $nodes->{skip};
+        $data = $nodes;
+    }
+    # Data supplied in direct calls to report() just need to be hashed
+    else {
+        $data = {
+            nodes   => $nodes,
+            message => ( $message||'' ),
+        };
+    }
+    delete $data->{message}  if  defined $data->{message}
+                            and  '' eq $data->{message}
+
+    # Derive the template ID and Blog ID (if any) for reporting purposes
+    my $tmpl    = $data->{nodes}[0]->ownerDocument;
     my $tmpl_id = $tmpl && $tmpl->id ? $tmpl->id : 0;
+    my $blog    = $tmpl->blog;
     my $blog_id = $blog ? $blog->id : 0;
 
+    # Convert the nodes into a final string
     my $tagattr = '';
-    foreach my $tok ( $prepend, $node ) {
+    foreach my $tok ( @{ $data->{nodes} } ) {
         next unless defined $tok;
-        my $tag        = $tok->tagName;
-        my $attrs      = $tok->[1];
-        my @attr_order = split(',', $tok->[1]{_attr_order}||'');
-        $tagattr      .= join( " ", $tag, map { join('=', $_, $attrs->{$_}||'') } @attr_order ).' // ';
+
+        # Join each of the arrayref elements into key=values (quoted values)
+        my @keyvalues = ();        
+        foreach my $kv ( @{ $tok->[4] } ) {
+            my ($k, $v) = ($kv->[0], $kv->[1]);
+            $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
+            push @keyvalues,  join('=', $k, $kv )
+        }
+        # And join each of the key=values by a space
+        $tagattr .= '<'.join( ' ', $tok->tagName, @keyvalues ).'>';
     }
 
+    # Create the reporting message
+    my $logger  = MT::Log::Log4perl->new( $plugin );
     my $message = $skipped ? 'Not transformed' : 'Transformed';
-    $message    = join('--', $message, $params->{message} )
-        if $params->{message};
-
-    my $logger  = MT::Log::Log4perl->new( $params->{plugin} ); # $logger->trace();
-    # $logger->debug('$blog: ', l4mtdump({ blog => $blog, tmpl => $tmpl, node1 => $node->[1] }));
+    $message   .= join('--', $message, $data->{message} ) if $data->{message};
     $logger->info(
           sprintf("%-10d %-10s $message: ", $blog_id, $tmpl_id ),
           $tagattr
@@ -45,40 +68,14 @@ sub _report {
     return ( ! $skipped );
 }
 
-sub report {
-    my $self               = shift;
-    my ( $node, $message ) = @_;
-    my $prepend;
-
-    eval {
-        ( $node, $prepend ) = @$node if ref($node) eq 'ARRAY';
-    };
-    if ( $@ ) {
-        $logger->debug('$node: ', l4mtdump($node));
-        die "Node ain't right here with ref ".ref($node).' '.Carp::longmess();
-    }
-
-    $self->_report({
-        plugin  => $self->PLUGIN,
-        node    => $node,
-        message => ($message||''),
-        ($prepend ? (prepend => $prepend) : ()),
-    });
-}
-
 sub report_skipped {
-    my $self               = shift;
-    my ( $node, $message ) = @_;
-    my $prepend;
-    ( $node, $prepend ) = @$node
-        unless $node->isa('TemplateUpgrader::Template::Node');
-    $self->_report({
-        plugin  => $self->PLUGIN,
-        node    => $node,
-        message => ($message||''),
-        ($prepend ? (prepend => $prepend) : ()),
-    }, 'SKIPPED');
-    
+    my $self = shift;
+    my ( $nodes, $message ) = @_;
+    $self->report({
+        skip    => 1,
+        nodes   => $nodes,
+        message => ( $message||'' ),
+    });
 }
 
 
