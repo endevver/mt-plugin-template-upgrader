@@ -184,6 +184,9 @@ sub createTextNode {
 package TemplateUpgrader::Template::Node;
 use strict; use warnings; use Carp; use Data::Dumper;
 
+use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
+###l4p our $logger = MT::Log::Log4perl->new();
+
 use base qw( MT::Template::Node );
 
 sub NODE_TEXT ()     { 1 }
@@ -224,8 +227,14 @@ sub tagName {
 sub getAttribute {
     my $node = shift;
     my ($attr) = @_;
-    my @attr = grep { $_->[0] eq $attr } @{ $node->[4] };
-    return wantarray ? @attr : \@attr;
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    my @attr = grep { $_->[0] eq $attr } @{ $node->[4] || [] };
+$logger->debug('@attr: ', l4mtdump(\@attr));
+
+    return unless @attr;
+    return ( @attr == 1  ? (shift @attr)->[1]
+           : wantarray   ? ( map { $_->[1] } @attr )
+                         : [ map { $_->[1] } @attr ]        );
 }
 
 sub setAttribute {
@@ -263,7 +272,7 @@ sub prependAttribute {
     my ($attr, $val) = @_;
     die unless $node->isa(__PACKAGE__);
     unshift @{ $node->[4] }, [ $attr, $val ];
-    $node->setAttribute( $attr, $val );
+    # $node->setAttribute( $attr, $val );
 }
 
 sub renameAttribute {
