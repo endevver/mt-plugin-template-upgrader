@@ -1,5 +1,89 @@
 #!/usr/bin/perl -w
 package TemplateUpgrader::Test::Template;
+use strict; use warnings; use Carp; use Data::Dumper;
+
+$Data::Dumper::Indent = 1;
+$Data::Dumper::Maxdepth = 3;
+
+BEGIN {
+    $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';
+    use Test::More tests => 2;
+    use lib qw( plugins/TemplateUpgrader/t/lib );
+    use TemplateUpgrader::Test;
+    use base qw( TemplateUpgrader::Test );
+    use TemplateUpgrader;
+    use MT::Test;
+}
+
+=pod
+Test::Object
+Test::Lazy
+Test::Lazy::Template
+Test::Lazy::Tester
+Test::Builder::Tester::Color
+Test::Builder
+p5-test-exception
+Test::Tutorial.pod
+
+=cut
+
+use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
+###l4p our $logger = MT::Log::Log4perl->new();
+
+my $upgrader = TemplateUpgrader->new();
+is(ref $upgrader, 'TemplateUpgrader', 'Upgrader class initialized');        #1
+
+my $tmpl = $upgrader->new_template();
+    isa_ok( $tmpl, 'TemplateUpgrader::Template' );                          #2
+
+$tmpl->text('<mt:Entries category="Me AND You" tag="Furry" lastn="10" setvar="Jerry">My Hours are insane </mt:Entries>');
+$logger->debug('$tmpl: ', l4mtdump($tmpl));
+$logger->debug('tmpl->text: '. (my $txt = $tmpl->text));
+
+$tmpl->{reflow_flag} = 1;
+$logger->debug('tmpl->text: '.$tmpl->text);
+$logger->debug('$tmpl: ', l4mtdump($tmpl));
+
+# save_backup
+# reflow
+# innerHTML
+# getElementById
+# createElement
+# createTextNode
+# dump_node
+# nodeType
+# tagName
+# getAttribute
+# setAttribute
+# removeAttribute
+# appendAttribute
+# prependAttribute
+# renameAttribute
+# 
+# print STDERR Dumper($tmpl);
+exit;
+
+__END__
+
+my $app = MT->instance;
+isa_ok($app, 'MT::App', 'MT is intialized');                                #5
+
+
+is( MT->model('templateupgrader_template'),
+    'TemplateUpgrader::Template',
+    'TemplateUpgrader::Template model');                                    #6
+
+is( MT->model('templateupgrader_handlers'),
+    'TemplateUpgrader::Handlers',
+    'TemplateUpgrader::Handlers model');                                    #7
+
+is( MT->model('templateupgrader_builder'),
+    'TemplateUpgrader::Builder',
+    'TemplateUpgrader::Builder model');                                     #8
+
+
+
+
 
 use strict;
 # use lib qw( plugins/TemplateUpgrader/t/lib );
@@ -21,50 +105,36 @@ exit;
 # remove_html       lower_case          indent              setvar
 # space_pad         strip_linefeeds
 
-__DATA__
 
-[
-{ "r" : "1", "t" : "<mtblogname encode_html=\"1\">",
-             "e" : "<mt:blogname encode_html=\"1\">" }, #1
+$Data::Dumper::Sortkeys = \&my_filter;
+sub my_filter {
+    my ($hash) = @_;
+    # return an array ref containing the hash keys to dump
+    # in the order that you want them to be dumped
+    return [
+      # Sort the keys of %$foo in reverse numeric order
+        $hash eq $foo ? (sort {$b <=> $a} keys %$hash) :
+      # Only dump the odd number keys of %$bar
+        $hash eq $bar ? (grep {$_ % 2} keys %$hash) :
+      # Sort keys in default order for all other hashes
+        (sort keys %$hash)
+    ];
+}
 
-{ "r" : "1", "t" : "<mt:EntryTrackbackCount none=\"No TrackBacks\" plural=\"# TrackBacks\" singular=\"1 TrackBack\">",
-             "e" : "<mt:EntryTrackbackCount none=\"No TrackBacks\" plural=\"# TrackBacks\" singular=\"1 TrackBack\">" }, #2
+# $Data::Dumper::Terse = 1;          # don't output names where feasible
+# $Data::Dumper::Indent = 0;         # turn off all pretty print
+# print Dumper($boo), "\n";
+# 
+$Data::Dumper::Indent = 1;         # mild pretty print
+# print Dumper($boo);
+# 
+# $Data::Dumper::Indent = 3;         # pretty print with array indices
+# print Dumper($boo);
+# 
+# $Data::Dumper::Useqq = 1;          # print strings in double quotes
+# print Dumper($boo);
+# 
+# $Data::Dumper::Pair = " : ";       # specify hash key/value separator
+# print Dumper($boo);
 
-{ "r" : "1", "t" : "<mt:EntryTrackbackCount plural=\"# TrackBacks\" none=\"No TrackBacks\" singular=\"1 TrackBack\">",
-             "e" : "<mt:EntryTrackbackCount plural=\"# TrackBacks\" none=\"No TrackBacks\" singular=\"1 TrackBack\">" }, #3
-
-{ "r" : "1", "t" : "<mt:Comments glue=\",\" sort_order=\"ascend\">",
-             "e" : "<mt:Comments glue=\",\" sort_order=\"ascend\">" }, #4
-             
-{ "r" : "1", "t" : "<form method=\"post\" action=\"<$mt:CGIPath$><$mt:CommunityScript$>\" name=\"entry_form\" id=\"create-entry-form\" enctype=\"multipart/form-data\">",
-             "e" : "<form method=\"post\" action=\"<mt:CGIPath><mt:CommunityScript>\" name=\"entry_form\" id=\"create-entry-form\" enctype=\"multipart/form-data\">" }, #5
-             
-{ "r" : "1", "t" : "<input type=\"hidden\" name=\"blog_id\" value=\"<$mt:BlogID$>\" />",
-             "e" : "<input type=\"hidden\" name=\"blog_id\" value=\"<mt:BlogID>\" />" }, #6
-             
-{ "r" : "1", "t" : "<$mt:Include module=\"Form Field\" id=\"entry-title\" class=\"\" label=\"Title\"$>",
-             "e" : "<mt:Include module=\"Form Field\" id=\"entry-title\" class=\"\" label=\"Title\">" }, #7
-             
-{ "r" : "1", "t" : "<$mt:Include module=\"Form Field\" id=\"entry-body\" class=\"\" label=\"Body\"$>",
-             "e" : "<mt:Include module=\"Form Field\" id=\"entry-body\" class=\"\" label=\"Body\">" }, #8
-             
-{ "r" : "1", "t" : "<mt:SetVarBlock name=\"loop_to\"><$mt:Var name=\"__depth__\" _default=\"0\"$></mt:SetVarBlock><mt:SetVarBlock name=\"spacer\"><mt:For start=\"1\" end=\"$loop_to\">&nbsp;&nbsp;&nbsp;&nbsp;</mt:For></mt:SetVarBlock><option value=\"<$mt:CategoryID$>\"><$mt:Var name=\"spacer\"$><$mt:CategoryLabel$></option><$mt:SubCatsRecurse$>",
-             "e" : "<mt:SetVarBlock name=\"loop_to\"><mt:Var _default=\"0\" name=\"__depth__\"></mt:SetVarBlock><mt:SetVarBlock name=\"spacer\"><mt:For start=\"1\" end=\"$loop_to\">&nbsp;&nbsp;&nbsp;&nbsp;</mt:For></mt:SetVarBlock><option value=\"<mt:CategoryID>\"><mt:Var name=\"spacer\"><mt:CategoryLabel></option><mt:SubCatsRecurse>" }, #9
-
-{ "r" : "1", "t" : "<$mt:Include module=\"Form Field\" id=\"entry-category\" class=\"\" label=\"Category\"$>",
-             "e" : "<mt:Include module=\"Form Field\" id=\"entry-category\" class=\"\" label=\"Category\">" }, #10
-
-{ "r" : "1", "t" : "<mt:SetVarBlock name=\"custom_field_name\"><$mt:CustomFieldName$></mt:SetVarBlock>
-                       <mt:SetVarBlock name=\"field-content\"><$mt:CustomFieldHTML$></mt:SetVarBlock>
-                       <mt:SetVarBlock name=\"custom_field_id\">profile_<$mt:CustomFieldName dirify=\"1\"$></mt:SetVarBlock>
-                       <$mt:Include module=\"Form Field\" id=\"$custom_field_id\" class=\"\" label=\"$custom_field_name\"$>",
-             "e" : "<mt:SetVarBlock name=\"custom_field_name\"><mt:CustomFieldName></mt:SetVarBlock>
-                       <mt:SetVarBlock name=\"field-content\"><mt:CustomFieldHTML></mt:SetVarBlock>
-                       <mt:SetVarBlock name=\"custom_field_id\">profile_<mt:CustomFieldName dirify=\"1\"></mt:SetVarBlock>
-                       <mt:Include module=\"Form Field\" id=\"$custom_field_id\" class=\"\" label=\"$custom_field_name\">" }, #11
-
-{ "r" : "1", "t" : "<mt:IfLoggedIn>YAY I AM LOGGED IN<mt:Else>BOO NO LOGIN FOR ME</mt:Else></mt:IfLoggedIn>",
-             "e" : "<mt:IfLoggedIn>YAY I AM LOGGED IN<mt:Else>BOO NO LOGIN FOR ME</mt:IfLoggedIn>" } #12
-
-]
-
+$Data::Dumper::Maxdepth = 3;

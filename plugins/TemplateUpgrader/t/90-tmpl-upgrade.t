@@ -1,5 +1,22 @@
-# #!/usr/bin/perl -w
-# package TemplateUpgrader::Test::Compare;
+#!/usr/bin/perl -w
+package TemplateUpgrader::Test::Template::Upgrade;
+use strict; use warnings; use Carp; use Data::Dumper;
+
+BEGIN {
+    $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';
+    use Test::More tests => 1;
+    use lib qw( plugins/TemplateUpgrader/t/lib );
+    use TemplateUpgrader::Test;
+    use base qw( TemplateUpgrader::Test );
+    use TemplateUpgrader;
+    use MT::Test;
+}
+
+ok(1);
+
+
+
+
 # 
 # use strict;
 # use lib qw( plugins/TemplateUpgrader/t/lib );

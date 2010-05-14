@@ -26,6 +26,7 @@ BEGIN {
     );
 
     foreach my $fn ( keys %dispatch ) {
+        no strict 'refs';
         *{'hdlr_'.$fn} = sub {
             $dispatch{$fn}->( @_ );
             __PACKAGE__->report([ @_ ])

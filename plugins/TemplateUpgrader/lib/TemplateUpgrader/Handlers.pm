@@ -6,9 +6,12 @@ use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 
 sub default_hdlr {
     my ($self, $node, $params ) = @_;
-    $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    $logger->warn('default_hdlr usage detected '.Carp::longmess());
-    $self->_report( { node => $node, %$params }, 'SKIPPED' );
+    $node = [ $node ] unless ref $node eq 'ARRAY';
+    $self->_report({
+        nodes => $node,
+        skip  => 1, 
+        %$params
+    });
 }
 
 sub report {
@@ -33,7 +36,7 @@ sub report {
         };
     }
     delete $data->{message}  if  defined $data->{message}
-                            and  '' eq $data->{message}
+                            and  '' eq $data->{message};
 
     # Derive the template ID and Blog ID (if any) for reporting purposes
     my $tmpl    = $data->{nodes}[0]->ownerDocument;
@@ -58,10 +61,10 @@ sub report {
     }
 
     # Create the reporting message
-    my $logger  = MT::Log::Log4perl->new( $plugin );
-    my $message = $skipped ? 'Not transformed' : 'Transformed';
+    my $rlogger = MT::Log::Log4perl->new( $plugin );
+    $message    = $skipped ? 'Not transformed' : 'Transformed';
     $message   .= join('--', $message, $data->{message} ) if $data->{message};
-    $logger->info(
+    $rlogger->info(
           sprintf("%-10d %-10s $message: ", $blog_id, $tmpl_id ),
           $tagattr
     );

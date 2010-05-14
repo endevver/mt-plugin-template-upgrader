@@ -11,15 +11,15 @@ sub PLUGIN() { 'CatCalendar' }
 sub hdlr_default {
     my ($node)   = @_;
     my $tag      = $node->tagName();
-    my $reporter = __PACKAGE__->can('report_skipped')
+    my $reporter = __PACKAGE__->can('report_skipped');
 
     if (lc $tag eq 'ifcategoryarchivesenabled') {
         $node->tagName(       'ifarchivetypeenabled'  );
         $node->setAttribute(  'type',     'Category'  );
-        $reporter = __PACKAGE__->can('report')
+        $reporter = __PACKAGE__->can('report');
     }
 
-    $reporter->([ $node ])
+    $reporter->(__PACKAGE__, [ $node ])
 }
 
 1;
