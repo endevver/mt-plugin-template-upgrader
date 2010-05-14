@@ -5,7 +5,7 @@ use strict;
 use lib qw( plugins/TemplateUpgrader/t/lib );
 use base qw( TemplateUpgrader::Test );
 
-__PACKAGE__->run();
+__PACKAGE__->run_data_tests();
 
 exit;
 

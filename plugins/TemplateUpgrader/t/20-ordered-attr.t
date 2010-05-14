@@ -1,11 +1,16 @@
 #!/usr/bin/perl -w
 package TemplateUpgrader::Test::OrderedAttributes;
+use strict; use warnings; use Carp; use Data::Dumper;
 
-use strict;
+BEGIN {
+    $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';    
+}
 use lib qw( plugins/TemplateUpgrader/t/lib );
 use base qw( TemplateUpgrader::Test );
+use TemplateUpgrader;
+use MT::Test;
 
-__PACKAGE__->run();
+__PACKAGE__->run_data_tests();
 
 exit;
 

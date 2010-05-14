@@ -183,6 +183,6 @@
 # </mt:If>
 # EOF
 # 
-# __PACKAGE__->run();
+# __PACKAGE__->run_data_tests();
 # 
 # exit;

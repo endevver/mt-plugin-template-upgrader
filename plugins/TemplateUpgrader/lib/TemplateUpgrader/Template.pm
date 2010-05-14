@@ -9,12 +9,18 @@ use MT::Util qw( weaken );
 
 use TemplateUpgrader::Builder;
 use Hook::LexWrap;
-
+use Scalar::Util qw( blessed );
+use List::Util qw( first );
 wrap *MT::Template::new, post => \&rebless;
 
 sub rebless { 
-    my $self = shift;
-    ref $self or $self = shift;
+    print STDERR "REBLESS ARG: $_\n" foreach @_;
+    my $self = first { defined and blessed } @_;
+    # my $self = ( @_ == 1 and blessed $_[0] )    ? $_[0] 
+    #          : ( @_ == 2 and )$_[-1];
+    # ref $self or $self = shift;
+    print STDERR "REBLESS SELF: $self\n";
+    # print STDERR "REBLESS -1: $_[-1]\n";
     bless $self, __PACKAGE__;
     return $self;
     # return $self->isa( __PACKAGE__ ) ? $self
@@ -59,51 +65,24 @@ sub save_backup {
     return $backup;
 }
 
-sub rescan {
-    my $tmpl = shift;
-    die unless $tmpl->isa(__PACKAGE__);
-    my ($tokens) = @_;
-    unless ($tokens) {
-        # top of tree; reset
-        $tmpl->{__ids} = {};
-        $tmpl->{__classes} = {};
-        # Use tokens if we already have them, otherwise compile
-        $tokens = $tmpl->{__tokens} || $tmpl->compile;
-    }
-    return unless $tokens;
-    foreach my $t (@$tokens) {
-        if ($t->[0] ne 'TEXT') {
-            if ($t->[1]->{id}) {
-                my $ids = $tmpl->{__ids} ||= {};
-                $ids->{lc $t->[1]->{id}} = $t;
-            }
-            elsif ($t->[1]->{class}) {
-                my $classes = $tmpl->{__classes} ||= {};
-                push @{ $classes->{lc $t->[1]->{class}} ||= [] }, $t;
-            }
-            $tmpl->rescan($t->[2]) if $t->[2];
-        }
-    }
-}
+# sub compile {
+#     my $tmpl = shift;
+#     die unless $tmpl->isa(__PACKAGE__);
+#     my $b = MT->model('templateupgrader_builder')->new();
+#     $b->compile($tmpl) or return $tmpl->error($b->errstr);
+#     return $tmpl->{__tokens};
+# }
 
-sub compile {
-    my $tmpl = shift;
-    die unless $tmpl->isa(__PACKAGE__);
-    my $b = MT->model('templateupgrader_builder')->new();
-    $b->compile($tmpl) or return $tmpl->error($b->errstr);
-    return $tmpl->{__tokens};
-}
-
-sub tokens {
-    my $tmpl = shift;
-    die unless $tmpl->isa(__PACKAGE__);
-    if (@_) {
-        return bless $tmpl->{__tokens} = shift, 'MT::Template::Tokens';
-    }
-    my $t = $tmpl->{__tokens} || $tmpl->compile;
-    return bless $t, 'MT::Template::Tokens' if $t;
-    return undef;
-}
+# sub tokens {
+#     my $tmpl = shift;
+#     die unless $tmpl->isa(__PACKAGE__);
+#     if (@_) {
+#         return bless $tmpl->{__tokens} = shift, 'MT::Template::Tokens';
+#     }
+#     my $t = $tmpl->{__tokens} || $tmpl->compile;
+#     return bless $t, 'MT::Template::Tokens' if $t;
+#     return undef;
+# }
 
 sub reflow {
     my $tmpl       = shift;
@@ -119,47 +98,25 @@ sub reflow {
         if ($token->[0] eq 'TEXT') {
             $str .= $token->[1];
         } else {
-            $token = $builder->order_attributes( $tmpl->context, $token );
             my $tag = $token->[0];
             $str .= '<mt:' . $tag;
             if (my $attrs = $token->[4]) {
-                my $attrh = $token->[1];
-                my @attr_order = split(',', delete $attrh->{_attr_order} || '');
-                ### DOC: For every ordered attribute
                 foreach my $a (@$attrs) {
-                    ### DOC: Delete it from the attribute hash
-                    delete $attrh->{$a->[0]};
-                    my $v = $a->[1];
-                    if ( ! defined $v ) {
-                        $logger->warn('Found an uninitialized attribute value for '.$a->[0].': '.$token->dump_node() );
-                        next;
+                    if ( ! defined $a->[1] ) {
+                        $logger->warn(
+                            'Found an uninitialized attribute value for '
+                            .$a->[0].': '
+                            .$token->dump_node()
+                        );
+                        $a->[1] = '';
                     }
+                    ### DOC: Delete it from the attribute hash
+                    my $v = $a->[1];
                     ### DOC: Properly quote the value based on existing quotes
                     $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
                     ### DOC: Assemble the attribute/value string and append
                     $str .= ' ' . $a->[0] . '=' . $v;
                     ### DOC: Remove from the @attr_order array
-                    @attr_order = grep { $_ ne $a->[0] } @attr_order;
-                }
-                foreach my $a (@attr_order) {
-                    ### DOC: Delete it from the attribute hash
-                    my $v = delete $attrh->{$a};
-                    if ( ! defined $v ) {
-                        $logger->warn("Found an uninitialized attribute value for $a: ".$token->dump_node() );
-                        next;
-                    }
-                    ### DOC: Properly quote the value based on existing quotes
-                    $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
-                    ### DOC: Assemble the attribute/value string and append
-                    $str .= ' ' . $a . '=' . $v;
-                }
-                ### DOC: Then iterate over the keys of the attribute hash
-                foreach my $a (keys %$attrh) {
-                    my $v = $attrh->{$a};
-                    ### DOC: Properly quote the value based on existing quotes
-                    $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
-                    ### DOC: Assemble the attribute/value string and append
-                    $str .= ' ' . $a . '=' . $v;
                 }
             }
             $str .= '>';
@@ -192,7 +149,6 @@ sub innerHTML {
 
 sub getElementById {
     my $tmpl = shift;
-    die unless $tmpl->isa(__PACKAGE__);
     my ($id) = @_;
     if (my $node = $tmpl->token_ids->{$id}) {
         return bless $node, NODE;
@@ -261,25 +217,32 @@ sub tagName {
     return $node->[0];
 }
 
+sub getAttribute {
+    my $node = shift;
+    my ($attr) = @_;
+    my @attr = grep { $_->[0] eq $attr } @{ $node->[4] };
+    return wantarray ? @attr : \@attr;
+}
+
 sub setAttribute {
     my $node = shift;
     die unless $node->isa(__PACKAGE__);
     my ($attr, $val) = @_;
     $node->SUPER::setAttribute( $attr, $val );
-    my %seen;
-    my @order = split(',', $node->[1]{_attr_order} || '');
-    $node->[1]{_attr_order}
-        = join(',',  grep { $_ ne '_attr_order' and ! $seen{$_}++ }
-                @order, $attr );
+    my $found;
+    foreach my $kv ( @{ $node->[4] } ) {
+        next unless $kv->[0] eq $attr;
+        $kv->[1] = $val;
+        $found++ and last;
+    }
+    push( @{ $node->[4] }, [ $attr, $val ] )
+        unless $found;
 }
 
 sub removeAttribute {
     my ($node, $attr) = @_;
     die unless $node->isa(__PACKAGE__);
     $node->[4] = [ grep { $_->[0] ne $attr } @{ $node->[4] } ];
-    my @order = split(',', $node->[1]{_attr_order} || '');
-    $node->[1]{_attr_order}
-        = join(',',  grep { $_ ne $attr and $_ ne '_attr_order' } @order );
     delete $node->[1]{$attr};
 }
 
@@ -287,21 +250,16 @@ sub appendAttribute {
     my $node = shift;
     my ($attr, $val) = @_;
     die unless $node->isa(__PACKAGE__);
-    $node->setAttribute( $attr, $val );
     push @{ $node->[4] }, [ $attr, $val ];
+    $node->setAttribute( $attr, $val );
 }
 
 sub prependAttribute {
     my $node = shift;
     my ($attr, $val) = @_;
     die unless $node->isa(__PACKAGE__);
-    $node->setAttribute( $attr, $val );
     unshift @{ $node->[4] }, [ $attr, $val ];
-    my %seen;
-    my @order = split(',', $node->[1]{_attr_order} || '');
-    $node->[1]{_attr_order}
-        = join(',',  grep { $_ ne '_attr_order' and ! $seen{$_}++ }
-                $attr, @order );
+    $node->setAttribute( $attr, $val );
 }
 
 sub renameAttribute {
@@ -315,7 +273,12 @@ sub renameAttribute {
         );
         return;
     }
-    $node->setAttribute( $new, $node->removeAttribute( $old ) );
+    $node->[1]{$new} = delete $node->[1]{$old};
+
+    foreach my $kv ( @{ $node->[4] } ) {
+        next unless $kv->[0] eq $old;
+        $kv->[0] = $new;
+    }
 }
 
 1;
@@ -358,6 +321,7 @@ TemplateUpgrader::Template - A subclass of MT::Template for TemplateUpgrader
                            Create the closing tag
 
 =item * $tmpl->text
+
 =item * $tmpl->text( $text )
 
     $tmpl->text() WITH $tmpl->{reflow_flag} set
@@ -371,9 +335,7 @@ TemplateUpgrader::Template - A subclass of MT::Template for TemplateUpgrader
         Return text
 
     $tmpl->text() WITHOUT $tmpl->{reflow_flag} set
-        Return text
-        $tmpl->reflow
-        $text = $tmpl->SUPER::text(@_);
+        Retrieves text (using MT::Object method)
         $tmpl->reset_tokens;
         returns $text
 
@@ -388,6 +350,7 @@ TemplateUpgrader::Template - A subclass of MT::Template for TemplateUpgrader
     Undefines the tokens
 
 =item * $tmpl->tokens
+
 =item * $tmpl->tokens( @tokens )
 
     Returns $tmpl->{__tokens} if set
@@ -430,6 +393,7 @@ TemplateUpgrader::Template - A subclass of MT::Template for TemplateUpgrader
     For all else undef
 
 =item * $node->innerHTML()
+
 =item * $node->innerHTML( $text )
 
     ALWAYS returns $node->[3]

@@ -1,42 +1,52 @@
 package TemplateUpgrader;
 
 use strict; use warnings; use Carp; use Data::Dumper;
-use base qw(Class::Accessor::Fast);
-use base qw( Class::Data::Inheritable );
+
+BEGIN {
+    use base qw( Class::Data::Inheritable Class::Accessor::Fast );
+    __PACKAGE__->mk_classdata(qw( bootstrapped ));
+    __PACKAGE__->mk_classdata(qw( handlers ));
+}
 
 use MT;
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
-
 sub bootstrap {
     my $pkg = shift;
-    unless ( $pkg->can('bootstrapped') ) {
-        $pkg->mk_classdata(qw( bootstrapped ));
-        $pkg->mk_accessors(qw( handlers ));
-    }
     return if $pkg->bootstrapped;
 
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    ###l4p $logger->debug('Bootstapping class');
+    ###l4p $logger->debug('Bootstrapping class');
+    my ($app, $registry);
     eval {
-        my $mt = MT->instance( Config => 'mt-config.cgi' ) or die MT->errstr;
-        my $registry = $mt->registry()
+        require MT::Test;
+        MT::Test->init_app( $ENV{MT_HOME}.'/mt-config.cgi' );
+        $app = MT->instance;
+        ###l4p $logger->debug('Initialized MT app of class: '.ref($app).' '.$app);
+        $registry = $app->registry('object_types')
             or die "MT registry not initialized: ".Carp::longmess();
-        foreach my $type ( qw( Template Builder )) {
-            my $opkg   = join('::', $pkg, $type );
-            ( my $model = lc $opkg ) =~ s{::}{_}g;
-            next if MT->model( $model );
-            $registry->{object_types}{ $model } = $opkg;
-            ###l4p $logger->debug("Initialized MT model $model: ".MT->model($model));
-        }
     };
-    if ($@) {
-        print STDERR "ERROR: $@\n";
+    if ($@) { print STDERR "$@\n"; exit }
+
+    ###l4p $logger->debug('Registry: ', l4mtdump($registry));
+
+    foreach my $type ( qw( Template Builder Handlers )) {
+        my $opkg   = join('::', $pkg, $type );
+        ( my $model = lc $opkg ) =~ s{::}{_}g;
+        ###l4p $logger->debug('Model/Pkg: ', l4mtdump({
+        ###l4p     model     => $model,
+        ###l4p     opkg      => $opkg,
+        ###l4p     app_model => $app->model( $model ),
+        ###l4p }));        
+        next if $app->model( $model );
+        ###l4p $logger->info("Setting registry object type $model to $opkg");
+        $registry->{ $model } = $opkg;
+        my $app_model = $app->model( $model, $opkg ); # Forced refresh!
+        ###l4p $logger->debug("Initialized MT model $model: ".$app_model);
     }
-    else {
-        $pkg->bootstrapped(1);
-    }
+    ###l4p $logger->info('WE ARE NOW BOOTSTRAPPED IN '.$pkg);
+    $pkg->bootstrapped(1);
 }
 
 BEGIN { __PACKAGE__->bootstrap() }
@@ -46,6 +56,7 @@ sub new_template {
     $pkg->bootstrap();
     my $tmpl_pkg = MT->model('templateupgrader_template')
         or die "No class for templateupgrader_template model";
+    eval "require $tmpl_pkg;";
     return $tmpl_pkg->new( @_ );
 }
 
@@ -58,6 +69,14 @@ sub new {
 
 sub init {
     my $self = shift;
+    # use Devel::Symdump;
+    # $Devel::Symdump::MAX_RECURSION = 10;
+    # my @packs = qw( TemplateUpgrader TemplateUpgrader::Test MT::Test );
+    # # my $obj = Devel::Symdump->new(@packs);        # no recursion
+    # my $obj = Devel::Symdump->rnew(@packs);       # with recursion
+    # 
+    # 
+    # print STDERR join("\n", $obj->functions);
     $self->bootstrap();
 }
 
@@ -65,15 +84,17 @@ sub upgrade {
     my $self                  = shift;
     my ( $tmpl, $handlers )   = @_;
     my $tmpl_class            = MT->model('templateupgrader_template');
-    $handlers               ||= $self->handlers || {};
+    $handlers               ||= $self->handlers || $self->init_handlers();
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+
 
     my $text_only = ! ref $tmpl;
     if ( $text_only ) {
         ###l4p $logger->info('Got TEXT-ONLY template');
-        my $tmpl_obj = $tmpl_class->new();
-        $tmpl_obj->text( ref $tmpl ? $$tmpl : $tmpl );
-        $tmpl = $tmpl_obj;
+        $tmpl = $self->new_template(
+            type => 'scalarref',
+            source => ( ref $tmpl ? $tmpl : \$tmpl )
+        );
         ###l4p $logger->info('Got TEXT-ONLY template. Now '.ref($tmpl));
     }
     else {
@@ -87,28 +108,33 @@ sub upgrade {
 
     # $logger->debug('$handlers: ', l4mtdump($handlers));
     # $logger->debug('$tmpl->tokens: ', l4mtdump($tmpl->tokens));
+    my $tokens = $tmpl->tokens;
+    my $text   = $tmpl->text;
     while ( my ( $tag, $code ) = each %$handlers ) {
         next if $tag eq 'plugin' and ref $code;
         # $logger->debug("Handling tag: $tag with handler ".$code);
-        $code = MT->handler_to_coderef($code); 
+        $code = MT->handler_to_coderef( $code ); 
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
-        my $changed = 0;
         foreach my $node ( @$nodes ) {
             $code->($node);
             if ( my $name = $node->getAttribute('name') ) {
-                $logger->debug('IN NOMINE: ', $name);
                 $node->prependAttribute( 'name', $name )
             }
             $logger->debug('NODE DUMP: '.$node->dump_node());
-            $changed++;
         }
-        $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
+        $tmpl->{reflow_flag} = 1;
+        $text = $tmpl->text;
+        
+        # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
         $logger->debug('TEXT AFTER HANDLER "'.$tag.'": '.$tmpl->text());
-        $tmpl->reset_tokens();
+        # $tmpl->reset_tokens();
     }
+    $tmpl->{reflow_flag} = 1;
+    $text = $tmpl->text;
+
     # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
-    $tmpl->reset_tokens();
-    $logger->debug('TEXT AFTER ALL HANDLERS: '.( my $text = $tmpl->text()));
+    # $tmpl->reset_tokens();
+    $logger->debug('TEXT AFTER ALL HANDLERS: '.$text);
     
     # $tmpl->reflow( $tmpl->tokens() );
     # $tmpl->text( MT->model('templateupgrader_builder')->reflow( $tmpl ) || '' );
@@ -127,6 +153,20 @@ sub compile_markup {
     $logger->error('# -- error compiling: ' . $b->errstr)
         unless defined $tokens;
     return $tokens;
+}
+
+sub init_handlers {
+    my $self = shift;
+    my $handlers = $self->handlers || {};
+    return $handlers if keys %$handlers;
+
+    my $plugin = MT->component('TemplateUpgrader')
+        or die "Could not retrieve TemplateUpgrader plugin component";
+    my $regdata = $plugin->registry('tag_upgrade_handlers')
+        or die "Failed initialization of plugin registry";
+    $self->handlers( $regdata || {} );
+        ###l4p $logger->debug('$self->handlers: ', l4mtdump($self->handlers));
+    return $self->handlers;
 }
 
 1;
