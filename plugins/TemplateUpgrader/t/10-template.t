@@ -7,14 +7,16 @@ $Data::Dumper::Maxdepth = 4;
 
 BEGIN {
     $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';
-    use Test::More tests => 16;
     use lib qw( plugins/TemplateUpgrader/t/lib );
     use TemplateUpgrader::Test;
     use base qw( TemplateUpgrader::Test );
     use TemplateUpgrader;
-    use MT::Test;
-    use Test::Deep qw( eq_deeply );
 }
+
+use Test::More tests => 23;
+use Test::Deep qw( eq_deeply );
+use Test::Warn;
+use MT::Test;
 
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
@@ -54,7 +56,6 @@ my @testnode = (
 my $tokens = $tmpl->tokens;
 my $node = $tokens->[0];
 ok( eq_deeply( $node->[4], \@testnode ) );                                  #4
-diag('YO');
 is( my $a = $node->getAttribute('setvar'),   'Jerry',      'getAttribute' ); #5
 is(    $a = $node->getAttribute('lastn'),    '10',         'getAttribute' ); #6
 is(    $a = $node->getAttribute('tag'),      'Furry',      'getAttribute' ); #7
@@ -97,20 +98,105 @@ ok( eq_deeply( $node->[4], \@testnode ) );                                 #13
 is( $a = $node->getAttribute('Ophelia'),   'Stella',   'getAttribute' );   #14
 
 @testnode = (
-    [ 'Ophelia',   'Chester'   ],
-    [ 'Scooby',   'Snack'      ],
-    [ 'category', 'Me AND You' ],
-    [ 'tag',       'Furry'     ],
-    [ 'lastn',     '10'        ],
-    [ 'setvar',    'Jerry'     ],
-    [ 'Zoey',      'Leigh'     ],
+    [ 'Ophelia',   'Chester'    ],
+    [ 'Scooby',    'Snack'      ],
+    [ 'category',  'Me AND You' ],
+    [ 'tag',       'Furry'      ],
+    [ 'lastn',     '10'         ],
+    [ 'setvar',    'Jerry'      ],
+    [ 'Zoey',      'Leigh'      ],
     [ 'Ophelia',   'Stella'     ],
 );
 $node->prependAttribute('Ophelia', 'Chester');
 ok( eq_deeply( $node->[4], \@testnode ) );                                 #15
-diag( Dumper( $node->getAttribute('Ophelia') ));
-is( ($a) = $node->getAttribute('Ophelia'), ['Chester', 'Stella'], 'getAttribute' );   #16
+is( @{ $a = $node->getAttribute('Ophelia') }, 
+    @{['Chester', 'Stella']}, 'getAttribute' );                            #16
 
+@testnode = (
+    [ 'Ophelia',   'Chester'    ],
+    [ 'Scooby',    'Snack'      ],
+    [ 'category',  'Me AND You' ],
+    [ 'tag',       'Furry'      ],
+    [ 'lastn',     '10'         ],
+    [ 'setvar',    'Jerry'      ],
+    [ 'Frannie',   'Leigh'      ],
+    [ 'Ophelia',   'Stella'     ],
+);
+$node->renameAttribute('Zoey', 'Frannie');
+ok( eq_deeply( $node->[4], \@testnode ) );                                 #17
+
+@testnode = (
+    [ 'Chi-chi',   'Chester'    ],
+    [ 'Scooby',    'Snack'      ],
+    [ 'category',  'Me AND You' ],
+    [ 'tag',       'Furry'      ],
+    [ 'lastn',     '10'         ],
+    [ 'setvar',    'Jerry'      ],
+    [ 'Frannie',   'Leigh'      ],
+    [ 'Ophelia',   'Stella'     ],
+);
+$node->renameAttribute('Ophelia', 'Chi-chi');
+ok( eq_deeply( $node->[4], \@testnode ) );                                 #18
+
+@testnode = (
+    [ 'Chi-chi',   'Chester'    ],
+    [ 'Scooby',    'Snack'      ],
+    [ 'category',  'Me AND You' ],
+    [ 'tag',       'Furry'      ],
+    [ 'lastn',     '10'         ],
+    [ 'setvar',    'Jerry'      ],
+    [ 'Frannie',   'Leigh'      ],
+    [ 'Ophelia',   'Stella'     ],
+);
+warning_like { $node->renameAttribute('setvar', 'Frannie') }
+[qw/failed due to existing target attribute/], 'Good warnings';
+
+ok( eq_deeply( $node->[4], \@testnode ) );                                 #19
+
+@testnode = (
+    [ 'Chi-chi',   'Chester'    ],
+    [ 'Scooby',    'Snack'      ],
+    [ 'category',  'Me AND You' ],
+    [ 'tag',       'Furry'      ],
+    [ 'lastn',     '10'         ],
+    [ 'Frannie',    'Jerry'      ],
+    [ 'Frannie',   'Leigh'      ],
+    [ 'Ophelia',   'Stella'     ],
+);
+$node->renameAttribute('setvar', 'Frannie', 'force');
+ok( eq_deeply( $node->[4], \@testnode ) );                                 #20
+
+@testnode = (
+    [ 'Chi-chi',   'Chester'    ],
+    [ 'Scooby',    'Snack'      ],
+    [ 'category',  'Me AND You' ],
+    [ 'tag',       'Furry'      ],
+    [ 'lastn',     '10'         ],
+    [ 'Frannie',    'Jerry'      ],
+    [ 'Frannie',   'Leigh'      ],
+);
+$node->removeAttribute('Ophelia');
+ok( eq_deeply( $node->[4], \@testnode ) );                                 #21
+
+@testnode = (
+    [ 'Chi-chi',   'Chester'    ],
+    [ 'category',  'Me AND You' ],
+    [ 'lastn',     '10'         ],
+    [ 'Frannie',    'Jerry'      ],
+    [ 'Frannie',   'Leigh'      ],
+);
+$node->removeAttribute('Scooby', 'tag');
+ok( eq_deeply( $node->[4], \@testnode ) );                                 #22
+
+@testnode = (
+    [ 'Chi-chi',   'Chester'    ],
+    [ 'category',  'Me AND You' ],
+    [ 'lastn',     '10'         ],
+);
+$node->removeAttribute('Frannie');
+ok( eq_deeply( $node->[4], \@testnode ) );                                 #23
+
+# diag( Dumper( $node->[4] ));
 
 # save_backup
 # reflow
@@ -118,15 +204,15 @@ is( ($a) = $node->getAttribute('Ophelia'), ['Chester', 'Stella'], 'getAttribute'
 # getElementById
 # createElement
 # createTextNode
+# removeAttribute
+
 # dump_node
 # nodeType
 # tagName
-# getAttribute
-# setAttribute
-# removeAttribute
 # appendAttribute
 # prependAttribute
-# renameAttribute
+# getAttribute
+# setAttribute
 # 
 # print STDERR Dumper($tmpl);
 exit;

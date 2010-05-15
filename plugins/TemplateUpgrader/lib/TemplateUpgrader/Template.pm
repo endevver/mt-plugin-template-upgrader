@@ -201,7 +201,6 @@ sub dump_node {
 
 sub nodeType {
     my $node = shift;
-    die unless $node->isa(__PACKAGE__);
     if ($node->[0] eq 'TEXT') {
         return $node->NODE_TEXT();
     } elsif (defined $node->[2]) {
@@ -213,7 +212,6 @@ sub nodeType {
 
 sub tagName {
     my $node = shift;
-    die unless $node->isa(__PACKAGE__);
     return unless ref($node) 
               and $node->isa('MT::Template::Node')
               and $node->nodeType != MT::Template::NODE_TEXT();
@@ -229,8 +227,6 @@ sub getAttribute {
     my ($attr) = @_;
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     my @attr = grep { $_->[0] eq $attr } @{ $node->[4] || [] };
-$logger->debug('@attr: ', l4mtdump(\@attr));
-
     return unless @attr;
     return ( @attr == 1  ? (shift @attr)->[1]
            : wantarray   ? ( map { $_->[1] } @attr )
@@ -239,7 +235,6 @@ $logger->debug('@attr: ', l4mtdump(\@attr));
 
 sub setAttribute {
     my $node = shift;
-    die unless $node->isa(__PACKAGE__);
     my ($attr, $val) = @_;
     $node->SUPER::setAttribute( $attr, $val );
     my $found;
@@ -250,39 +245,64 @@ sub setAttribute {
     }
     push( @{ $node->[4] }, [ $attr, $val ] )
         unless $found;
+    return $node;
 }
 
 sub removeAttribute {
-    my ($node, $attr) = @_;
-    die unless $node->isa(__PACKAGE__);
-    $node->[4] = [ grep { $_->[0] ne $attr } @{ $node->[4] } ];
-    delete $node->[1]{$attr};
+    my ($node, @attr) = @_;
+    my %unwanted;
+    @unwanted{@attr} = (1..@attr);  # Hash acting as a binary lookup table
+    $node->[4] = [ grep { ! $unwanted{ $_ } } @{ $node->[4] } ];
+    delete $node->[1]{@attr};
+    return $node;
+}
+
+sub attributes {
+    my $node = shift;
+    return wantarray ?  @{ $node->[4] } : $node->[4];
+}
+
+sub attributeKeys {
+    my $node = shift;
+    my @attrs = map { $_->[0] } @{ $node->[4] };
+    return wantarray ?  @attrs : [ @attrs ];
+}
+
+sub attributeValues {
+    my $node = shift;
+    my @attrs = map { $_->[1] } @{ $node->[4] };
+    return wantarray ?  @attrs : [ @attrs ];
 }
 
 sub appendAttribute {
     my $node = shift;
-    my ($attr, $val) = @_;
-    die unless $node->isa(__PACKAGE__);
-    push @{ $node->[4] }, [ $attr, $val ];
-    $node->setAttribute( $attr, $val );
+    my (%param) = @_;
+    while ( my ($attr, $val) = each %params ) {
+        push @{ $node->[4] }, [ $attr, $val ];
+        $node->setAttribute( $attr, $val );
+    }
+    return $node;
 }
 
 sub prependAttribute {
     my $node = shift;
     my ($attr, $val) = @_;
-    die unless $node->isa(__PACKAGE__);
     unshift @{ $node->[4] }, [ $attr, $val ];
     # $node->setAttribute( $attr, $val );
+    return $node;
 }
 
 sub renameAttribute {
-    my ($node, $old, $new) = @_;
-    die unless $node->isa(__PACKAGE__);
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    if ( exists $node->[1]{$new} ) {
+    my ($node, $old, $new, $force) = @_;
+    $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    if ( exists $node->[1]{$new} and ! $force ) {
         $logger->error(
+            sprintf
              'Renaming of %s attribute (value: %s) to %s failed due '
-            .'to existing target attribute (value: %s)'
+            .'to existing target attribute (value: %s). You can override '
+            .'this protection by calling renameAttribute with a third '
+            .'argument which evaluates to boolean TRUE.',
+            $old, $node->[1]{$old}, $new, $node->[1]{$new}
         );
         return;
     }
@@ -291,7 +311,9 @@ sub renameAttribute {
     foreach my $kv ( @{ $node->[4] } ) {
         next unless $kv->[0] eq $old;
         $kv->[0] = $new;
+        last;
     }
+    return $node;
 }
 
 1;
