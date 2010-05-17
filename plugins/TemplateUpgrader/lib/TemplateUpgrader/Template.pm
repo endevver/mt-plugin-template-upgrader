@@ -274,10 +274,11 @@ sub attributeValues {
     return wantarray ?  @attrs : [ @attrs ];
 }
 
+
 sub appendAttribute {
     my $node = shift;
     my (%param) = @_;
-    while ( my ($attr, $val) = each %params ) {
+    while ( my ($attr, $val) = each %param ) {
         push @{ $node->[4] }, [ $attr, $val ];
         $node->setAttribute( $attr, $val );
     }

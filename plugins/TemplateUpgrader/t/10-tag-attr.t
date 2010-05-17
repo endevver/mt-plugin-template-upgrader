@@ -148,8 +148,9 @@ ok( eq_deeply( $node->[4], \@testnode ) );                                 #18
     [ 'Frannie',   'Leigh'      ],
     [ 'Ophelia',   'Stella'     ],
 );
+$node->renameAttribute('setvar', 'Frannie');
 warning_like { $node->renameAttribute('setvar', 'Frannie') }
-[qw/failed due to existing target attribute/], 'Good warnings';
+['failed due to existing target attribute'], 'Good warnings';
 
 ok( eq_deeply( $node->[4], \@testnode ) );                                 #19
 
