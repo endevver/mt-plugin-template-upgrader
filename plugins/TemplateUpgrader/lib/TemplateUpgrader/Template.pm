@@ -252,7 +252,7 @@ sub removeAttribute {
     my ($node, @attr) = @_;
     my %unwanted;
     @unwanted{@attr} = (1..@attr);  # Hash acting as a binary lookup table
-    $node->[4] = [ grep { ! $unwanted{ $_ } } @{ $node->[4] } ];
+    $node->[4] = [ grep { ! $unwanted{ $_->[0] } } @{ $node->[4] } ];
     delete $node->[1]{@attr};
     return $node;
 }
@@ -297,14 +297,13 @@ sub renameAttribute {
     my ($node, $old, $new, $force) = @_;
     $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     if ( exists $node->[1]{$new} and ! $force ) {
-        $logger->error(
-            sprintf
-             'Renaming of %s attribute (value: %s) to %s failed due '
-            .'to existing target attribute (value: %s). You can override '
-            .'this protection by calling renameAttribute with a third '
-            .'argument which evaluates to boolean TRUE.',
-            $old, $node->[1]{$old}, $new, $node->[1]{$new}
-        );
+        my $msg = sprintf
+         'Renaming of existing attribute failed: %s. You can override '
+        .'this protection by calling renameAttribute with a third '
+        .'argument which evaluates to boolean TRUE.',
+        $old, $node->[1]{$old}, $new, $node->[1]{$new};
+        warn $msg;
+        $logger->error( $msg );
         return;
     }
     $node->[1]{$new} = delete $node->[1]{$old};

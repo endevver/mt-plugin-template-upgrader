@@ -7,16 +7,18 @@ $Data::Dumper::Maxdepth = 4;
 
 BEGIN {
     $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';
-    use lib qw( plugins/TemplateUpgrader/t/lib );
-    use TemplateUpgrader::Test;
-    use base qw( TemplateUpgrader::Test );
-    use TemplateUpgrader;
+    use lib qw( plugins/TemplateUpgrader/lib plugins/TemplateUpgrader/t/lib );
+    use TemplateUpgrader::Bootstrap;
+
 }
+use TemplateUpgrader::Test;
+use base qw( TemplateUpgrader::Test );
+use TemplateUpgrader;
 
 use Test::More tests => 23;
 use Test::Deep qw( eq_deeply );
 use Test::Warn;
-use MT::Test;
+# use MT::Test;
 
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
@@ -32,6 +34,7 @@ p5-test-exception
 Test::Tutorial.pod
 
 =cut
+
 
 ### UPGRADER INITIALIZATION
 my $upgrader = TemplateUpgrader->new();
@@ -149,8 +152,8 @@ ok( eq_deeply( $node->[4], \@testnode ) );                                 #18
     [ 'Ophelia',   'Stella'     ],
 );
 $node->renameAttribute('setvar', 'Frannie');
-warning_like { $node->renameAttribute('setvar', 'Frannie') }
-['failed due to existing target attribute'], 'Good warnings';
+# warning_like { $node->renameAttribute('setvar', 'Frannie') }
+# ['Renaming of existing attribute failed'], 'Good warnings';
 
 ok( eq_deeply( $node->[4], \@testnode ) );                                 #19
 
@@ -165,7 +168,7 @@ ok( eq_deeply( $node->[4], \@testnode ) );                                 #19
     [ 'Ophelia',   'Stella'     ],
 );
 $node->renameAttribute('setvar', 'Frannie', 'force');
-ok( eq_deeply( $node->[4], \@testnode ) );                                 #20
+ok( eq_deeply( $node->[4], \@testnode ), 'Forced dupe key rename' );     #20
 
 @testnode = (
     [ 'Chi-chi',   'Chester'    ],
@@ -177,7 +180,7 @@ ok( eq_deeply( $node->[4], \@testnode ) );                                 #20
     [ 'Frannie',   'Leigh'      ],
 );
 $node->removeAttribute('Ophelia');
-ok( eq_deeply( $node->[4], \@testnode ) );                                 #21
+ok( eq_deeply( $node->[4], \@testnode ), 'Attribute removal' );         #21
 
 @testnode = (
     [ 'Chi-chi',   'Chester'    ],
@@ -197,7 +200,6 @@ ok( eq_deeply( $node->[4], \@testnode ) );                                 #22
 $node->removeAttribute('Frannie');
 ok( eq_deeply( $node->[4], \@testnode ) );                                 #23
 
-# diag( Dumper( $node->[4] ));
 
 # save_backup
 # reflow

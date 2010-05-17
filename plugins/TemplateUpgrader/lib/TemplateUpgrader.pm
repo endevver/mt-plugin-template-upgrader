@@ -11,11 +11,8 @@ use lib qw( lib extlib );
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
-BEGIN { __PACKAGE__->bootstrap() }
-
 sub new_template {
     my $pkg =  shift;
-    $pkg->bootstrap();
     my $tmpl_pkg = MT->model('templateupgrader_template')
         or die "No class for templateupgrader_template model";
     eval "require $tmpl_pkg;";
@@ -31,7 +28,6 @@ sub new {
 
 sub init {
     my $self = shift;
-    $self->bootstrap();
 }
 
 sub upgrade {
