@@ -11,21 +11,6 @@ use TemplateUpgrader::Builder;
 use Scalar::Util qw( blessed );
 use List::Util qw( first );
 
-BEGIN {
-    use Hook::LexWrap;
-    no warnings 'redefine';
-    wrap *MT::Template::new, post => \&rebless;
-}
-
-sub rebless { 
-    # print STDERR "REBLESS ARG: $_\n" foreach @_;
-    my $self = first { defined and blessed $_ } @_;
-    # print STDERR "REBLESS SELF: $self\n";
-    # print STDERR "----------------------------\n";
-    bless $self, __PACKAGE__;
-    return $self;
-}
-
 # END {
 #     use Devel::Symdump;
 #     $Devel::Symdump::MAX_RECURSION = 10;
@@ -42,7 +27,7 @@ sub NODE_FUNCTION () { 3 }
 
 sub save_backup {
     my $tmpl = shift;
-    die unless $tmpl->isa(__PACKAGE__);
+    warn "Found incorrect package: ".ref($tmpl) unless $tmpl->isa(__PACKAGE__);
     my $blog = $tmpl->blog;
     my $t = time;
     my @ts = MT::Util::offset_time_list( $t, ( $blog ? $blog->id : undef ) );
@@ -168,7 +153,7 @@ sub getElementById {
 
 sub createElement {
     my $tmpl = shift;
-    die unless $tmpl->isa(__PACKAGE__);
+    warn "Found incorrect package: ".ref($tmpl) unless $tmpl->isa(__PACKAGE__);
     my ($tag, $attr) = @_;
     my $node = bless [ $tag, $attr, undef, undef, undef, undef, $tmpl ], NODE;
     weaken($node->[6]);
@@ -177,7 +162,7 @@ sub createElement {
 
 sub createTextNode {
     my $tmpl = shift;
-    die unless $tmpl->isa(__PACKAGE__);
+    warn "Found incorrect package: ".ref($tmpl) unless $tmpl->isa(__PACKAGE__);
     my ($text) = @_;
     my $node = bless [ 'TEXT', $text, undef, undef, undef, undef, $tmpl ], NODE;
     weaken($node->[6]);

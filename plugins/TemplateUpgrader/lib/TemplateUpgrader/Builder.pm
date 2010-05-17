@@ -7,20 +7,7 @@ use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 
 use MT::Util qw( weaken );
 
-BEGIN {
-    use Hook::LexWrap;
-    no warnings 'redefine';
-    wrap *MT::Builder::new, post => \&rebless;
-}
-
 sub NODE () { 'TemplateUpgrader::Template::Node' }
-
-sub rebless { 
-    my $self = shift;
-    ref $self or $self = shift;
-    return $self->isa( __PACKAGE__ ) ? $self
-         : bless $self, __PACKAGE__;
-}
 
 sub compile {
     my $build = shift;

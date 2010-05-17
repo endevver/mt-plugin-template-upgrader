@@ -80,7 +80,8 @@ sub upgrade {
         # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
         # $tmpl->reset_tokens();
     }
-    $tmpl->{reflow_flag} = 1;
+    $tmpl->text( $tmpl->reflow( $tokens ) );
+    # $tmpl->{reflow_flag} = 1;    
     $text = $tmpl->text;
 
     # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );

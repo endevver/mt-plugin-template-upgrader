@@ -192,7 +192,8 @@ $node->removeAttribute('frannie');
 ok( eq_deeply( $node->[4], \@testnode ) );                                 #23
 
 my $new_t = '<mt:Entries chichi="Chester" category="Me AND You" lastn="10">My Hours are insane </mt:Entries>';
-$tmpl->{reflow_flag} = 1;
+# $tmpl->{reflow_flag} = 1;
+$tmpl->text( $tmpl->reflow( $tokens ) );
 is( $tmpl->text, $new_t, 'Template text upgraded' );                           #24
 
 

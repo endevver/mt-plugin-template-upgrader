@@ -8,7 +8,6 @@ BEGIN {
 use lib qw( plugins/TemplateUpgrader/t/lib );
 use base qw( TemplateUpgrader::Test );
 use TemplateUpgrader;
-use Test::More skip_all => 'Not ready';
 
 __PACKAGE__->run_data_tests();
 
@@ -54,7 +53,7 @@ __DATA__
              "e" : "<mt:Include module=\"Form Field\" id=\"entry-body\" class=\"\" label=\"Body\">" }, #8
              
 { "r" : "1", "t" : "<mt:SetVarBlock name=\"loop_to\"><$mt:Var name=\"__depth__\" _default=\"0\"$></mt:SetVarBlock><mt:SetVarBlock name=\"spacer\"><mt:For start=\"1\" end=\"$loop_to\">&nbsp;&nbsp;&nbsp;&nbsp;</mt:For></mt:SetVarBlock><option value=\"<$mt:CategoryID$>\"><$mt:Var name=\"spacer\"$><$mt:CategoryLabel$></option><$mt:SubCatsRecurse$>",
-             "e" : "<mt:SetVarBlock name=\"loop_to\"><mt:Var _default=\"0\" name=\"__depth__\"></mt:SetVarBlock><mt:SetVarBlock name=\"spacer\"><mt:For start=\"1\" end=\"$loop_to\">&nbsp;&nbsp;&nbsp;&nbsp;</mt:For></mt:SetVarBlock><option value=\"<mt:CategoryID>\"><mt:Var name=\"spacer\"><mt:CategoryLabel></option><mt:SubCatsRecurse>" }, #9
+             "e" : "<mt:SetVarBlock name=\"loop_to\"><mt:Var name=\"__depth__\" _default=\"0\"></mt:SetVarBlock><mt:SetVarBlock name=\"spacer\"><mt:For start=\"1\" end=\"$loop_to\">&nbsp;&nbsp;&nbsp;&nbsp;</mt:For></mt:SetVarBlock><option value=\"<mt:CategoryID>\"><mt:Var name=\"spacer\"><mt:CategoryLabel></option><mt:SubCatsRecurse>" }, #9
 
 { "r" : "1", "t" : "<$mt:Include module=\"Form Field\" id=\"entry-category\" class=\"\" label=\"Category\"$>",
              "e" : "<mt:Include module=\"Form Field\" id=\"entry-category\" class=\"\" label=\"Category\">" }, #10
