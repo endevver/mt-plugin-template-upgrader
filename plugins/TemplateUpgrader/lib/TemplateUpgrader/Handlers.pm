@@ -54,10 +54,10 @@ sub report {
         foreach my $kv ( @{ $tok->[4] } ) {
             my ($k, $v) = ($kv->[0], $kv->[1]);
             $v = $v =~ m/"/ ? qq{'$v'} : qq{"$v"};
-            push @keyvalues,  join('=', $k, $kv )
+            push @keyvalues,  join('=', $k, $v )
         }
         # And join each of the key=values by a space
-        $tagattr .= '<'.join( ' ', $tok->tagName, @keyvalues ).'>';
+        $tagattr .= '<mt:'.join( ' ', $tok->tagName, @keyvalues ).'>';
     }
 
     # Create the reporting message

@@ -7,11 +7,13 @@ use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 
 use MT::Util qw( weaken );
 
+BEGIN {
+    use Hook::LexWrap;
+    no warnings 'redefine';
+    wrap *MT::Builder::new, post => \&rebless;
+}
+
 sub NODE () { 'TemplateUpgrader::Template::Node' }
-
-use Hook::LexWrap;
-
-wrap *MT::Builder::new, post => \&rebless;
 
 sub rebless { 
     my $self = shift;
@@ -84,7 +86,7 @@ sub compile {
         $build->_text_block($state, $pos, $tag_start) if $pos < $tag_start;
         $state->{space_eater} = $space_eater;
         $args ||= '';
-        ###l4p $logger->info("ARG STRING: $args") if $args;
+        ##l4p $logger->info("ARG STRING: $args") if $args;
 
         # Structure of a node:
         #   tag name, attribute hashref, contained tokens, template text,
@@ -120,11 +122,11 @@ sub compile {
                 my $attr = lc $1;
                 my $value = defined $6 ? $6 : $3;
                 my $extra = $4;
-                ###l4p $logger->debug('PARSED ATTR/VALS ', l4mtdump({
-                ###l4p     attr => $attr,
-                ###l4p     value => $value,
-                ###l4p     extra => $extra
-                ###l4p }));
+                ##l4p $logger->debug('PARSED ATTR/VALS ', l4mtdump({
+                ##l4p     attr => $attr,
+                ##l4p     value => $value,
+                ##l4p     extra => $extra
+                ##l4p }));
 
                 if (defined $extra) {
                     my @extra;

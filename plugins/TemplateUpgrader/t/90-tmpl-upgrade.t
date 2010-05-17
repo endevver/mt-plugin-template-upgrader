@@ -4,7 +4,7 @@ use strict; use warnings; use Carp; use Data::Dumper;
 
 BEGIN {
     $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';
-    use Test::More tests => 1;
+    use Test::More skip_all => 'Not ready';
     use lib qw( plugins/TemplateUpgrader/t/lib );
     use TemplateUpgrader::Test;
     use base qw( TemplateUpgrader::Test );

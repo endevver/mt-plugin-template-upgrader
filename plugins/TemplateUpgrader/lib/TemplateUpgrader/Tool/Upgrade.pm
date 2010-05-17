@@ -96,7 +96,7 @@ sub initialize_default_handler {
 
 sub init_options {
     my $app = shift;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     $app->SUPER::init_options( @_ );
     my $options = $app->options();
 
@@ -133,7 +133,7 @@ sub init_options {
 
 sub pre_run {
     my $app = shift;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     $app->SUPER::pre_run(@_);
 
     $app->initialize_default_handler();
@@ -145,7 +145,7 @@ sub mode_default {
     my $app      = shift;
     my $blog     = $app->blog || $app->param('blog_id'); # Can be 0
     my $template = $app->param('template');
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     require MT::Util::ReqTimer;
     $timer = MT::Util::ReqTimer->new( join('-', __PACKAGE__, $$) );

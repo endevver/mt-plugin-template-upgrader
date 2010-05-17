@@ -5,6 +5,7 @@ use strict;
 use lib qw( plugins/TemplateUpgrader/t/lib );
 use SelfLoader;
 use base qw( TemplateUpgrader::Test );
+use Test::More skip_all => 'Not ready';
 
 __PACKAGE__->run_data_tests();
 

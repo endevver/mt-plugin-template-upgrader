@@ -8,7 +8,7 @@ BEGIN {
 use lib qw( plugins/TemplateUpgrader/t/lib );
 use base qw( TemplateUpgrader::Test );
 use TemplateUpgrader;
-use MT::Test;
+use Test::More skip_all => 'Not ready';
 
 __PACKAGE__->run_data_tests();
 

@@ -1,20 +1,24 @@
 package TemplateUpgrader::Test;
 use strict; use warnings; use Carp; use Data::Dumper;
+
+use base qw( Class::Data::Inheritable );
+
 use IPC::Open2;
 # use SelfLoader;
 require POSIX;
 use JSON -support_by_pp;
 use Test::More;
+
 use lib qw( plugins/TemplateUpgrader/t/lib
             plugins/TemplateUpgrader/lib
             plugins/TemplateUpgrader/extlib
             t/lib  lib  extlib );
+use TemplateUpgrader::Bootstrap;
 use TemplateUpgrader;
 
 # use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
-use base qw( Class::Data::Inheritable );
 
 $| = 1;
 

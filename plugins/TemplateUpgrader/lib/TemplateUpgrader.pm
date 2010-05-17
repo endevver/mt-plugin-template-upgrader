@@ -6,6 +6,7 @@ BEGIN {
     use base qw( Class::Data::Inheritable Class::Accessor::Fast );
     __PACKAGE__->mk_classdata(qw( bootstrapped ));
     __PACKAGE__->mk_classdata(qw( handlers ));
+    use TemplateUpgrader::Bootstrap;
 }
 use lib qw( lib extlib );
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
@@ -40,12 +41,12 @@ sub upgrade {
 
     my $text_only = ! ref $tmpl;
     if ( $text_only ) {
-        ###l4p $logger->info('Got TEXT-ONLY template');
+        ##l4p $logger->info('Got TEXT-ONLY template');
         $tmpl = $self->new_template(
             type => 'scalarref',
             source => ( ref $tmpl ? $tmpl : \$tmpl )
         );
-        ###l4p $logger->info('Got TEXT-ONLY template. Now '.ref($tmpl));
+        ##l4p $logger->info('Got TEXT-ONLY template. Now '.ref($tmpl));
     }
     else {
         $tmpl = $tmpl_class->rebless( $tmpl );
@@ -66,17 +67,17 @@ sub upgrade {
         $code = MT->handler_to_coderef( $code ); 
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
         foreach my $node ( @$nodes ) {
+            # $tmpl->{reflow_flag} = 1;
+            # $text = $tmpl->text;
             $code->($node);
             if ( my $name = $node->getAttribute('name') ) {
                 $node->prependAttribute( 'name', $name )
             }
-            $logger->debug('NODE DUMP: '.$node->dump_node());
+            $logger->debug('NODE DUMP: '.$node->dump_node(0,1,4));
         }
-        $tmpl->{reflow_flag} = 1;
-        $text = $tmpl->text;
-        
+        # $tmpl->{reflow_flag} = 1;
+        $logger->debug('TEXT AFTER HANDLER "'.$tag.'": '.( $text = $tmpl->text ));
         # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
-        $logger->debug('TEXT AFTER HANDLER "'.$tag.'": '.$tmpl->text());
         # $tmpl->reset_tokens();
     }
     $tmpl->{reflow_flag} = 1;

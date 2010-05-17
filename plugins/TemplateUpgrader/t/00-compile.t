@@ -9,7 +9,7 @@ use lib qw( t/lib   plugins/TemplateUpgrader/lib
             lib extlib );
 # use MT::Test;
 
-use Test::More tests => 17;
+use Test::More tests => 18;
 
 use_ok('MT::Bootstrap::CLI');                       #1
 use_ok('MT::App::CLI');                             #2
@@ -28,6 +28,7 @@ use_ok('TemplateUpgrader::Tool::Upgrade');          #14
 use_ok('HTML::Diff');                               #15
 use_ok('Hook::LexWrap');                            #16
 use_ok('Sub::Install');                             #17
+use_ok('MT::Test');                                 #18
 
 # Maybe there's a way to test these programmatically?
 #   html/mt/plugins/TemplateUpgrader/config.yaml

@@ -8,10 +8,14 @@ use base qw( MT::Template );
 use MT::Util qw( weaken );
 
 use TemplateUpgrader::Builder;
-use Hook::LexWrap;
 use Scalar::Util qw( blessed );
 use List::Util qw( first );
-wrap *MT::Template::new, post => \&rebless;
+
+BEGIN {
+    use Hook::LexWrap;
+    no warnings 'redefine';
+    wrap *MT::Template::new, post => \&rebless;
+}
 
 sub rebless { 
     # print STDERR "REBLESS ARG: $_\n" foreach @_;
@@ -94,7 +98,7 @@ sub reflow {
     $tokens      ||= $tmpl->tokens;
     my $builder    = MT->model('templateupgrader_builder')->new();
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    die "Found a ".ref($tmpl) unless $tmpl->isa('TemplateUpgrader::Template');
+    ##l4p $logger->debug(ref($tmpl).' Nodeeee: '.$_->dump_node()) foreach @$tokens;
 
     # reconstitute text of template based on tokens
     my $str = '';
@@ -126,11 +130,13 @@ sub reflow {
             $str .= '>';
             if ($token->[2]) {
                 # container tag
+                ##l4p $logger->info('String before reflow contents: '.$str);
                 $str .= $tmpl->reflow( $token->[2] );
                 $str .= '</mt:' . $tag . '>';# unless $tag eq 'else';
             }
         }
     }
+    ###l4p $logger->info('String at the end of reflow: '.$str);
     return $str;
 }
 

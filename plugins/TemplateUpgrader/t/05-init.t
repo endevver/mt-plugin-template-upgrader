@@ -6,7 +6,13 @@ my $app;
 BEGIN {
     $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';    
     use Test::More tests => 8;
-    use lib qw( plugins/TemplateUpgrader/lib plugins/TemplateUpgrader/t/lib );
+    # use lib qw( plugins/TemplateUpgrader/lib plugins/TemplateUpgrader/t/lib );
+    use lib qw( t/lib   plugins/TemplateUpgrader/lib
+                plugins/TemplateUpgrader/extlib 
+                plugins/TemplateUpgrader/t/lib
+                plugins/TemplateUpgrader/t/extlib
+                lib extlib );
+    
     use_ok( 'TemplateUpgrader::Bootstrap' );                                #1
     use TemplateUpgrader::Bootstrap;
     $app = TemplateUpgrader::Bootstrap->app();
