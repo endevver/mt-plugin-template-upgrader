@@ -2,17 +2,94 @@
 package TemplateUpgrader::Test::Template::Upgrade;
 use strict; use warnings; use Carp; use Data::Dumper;
 
+# use Test::More tests => 1;
+use Test::More qw( no_plan );
+my $app;
 BEGIN {
-    $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';
-    use Test::More skip_all => 'Not ready';
-    use lib qw( plugins/TemplateUpgrader/t/lib );
-    use TemplateUpgrader::Test;
-    use base qw( TemplateUpgrader::Test );
-    use TemplateUpgrader;
-    use MT::Test;
+    use lib qw( plugins/TemplateUpgrader/lib );
+    use TemplateUpgrader::Bootstrap;
+    $app = TemplateUpgrader::Bootstrap->app();
+}
+# use Test::Deep qw( eq_deeply );
+# use Test::Warn;
+$Data::Dumper::Indent = 1;
+$Data::Dumper::Maxdepth = 4;
+
+use base qw( TemplateUpgrader::Test );
+use TemplateUpgrader;
+use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
+###l4p our $logger = MT::Log::Log4perl->new(); $logger->trace();
+my $tmpl_class = MT->model('templateupgrader_template');
+use TemplateUpgrader::Template;
+
+my %tmpl_data = (
+    text    => 'This is the original text',
+    name    => "My test template $$",
+    type    => 'index',
+    blog_id => 1,
+);
+
+my $tmpl   = new_template( %tmpl_data );
+my $loaded = load_by_id( $tmpl->id );
+compare_templates( $tmpl, $loaded );
+my $backup = $loaded->save_backup();
+
+subtest 'Backup template' => sub {
+    plan tests => 2 + (keys %tmpl_data);
+    isa_ok( $backup, $tmpl_class );
+    isnt( $backup->id, $tmpl->id, 'Template ID' );
+    is( $backup->blog_id, $tmpl_data{blog_id}, 'Template blog_id' );
+    like( $backup->name, qr/$tmpl_data{name}/, 'Template name' );
+    is( $backup->type, 'backup', 'Template type' );
+    is( $backup->meta('parent'), $tmpl->id, 'Parent template ID meta' );
+};
+
+
+sub new_template {
+    my %data = @_;
+    my $tmpl;
+    subtest 'New template' => sub {
+        plan tests => 2;
+        $tmpl = new_ok( $tmpl_class => [], 'Template' );
+        $tmpl->set_values( \%tmpl_data );
+        my $rc = $tmpl->save()
+            or die "Error saving template: ".$tmpl->errstr;
+        ok( $rc, 'Template save'.($rc ? '' : " error: ".$tmpl->errstr ) );
+    };
+    return $tmpl;
 }
 
-ok(1);
+sub load_by_id {
+    my $id     = shift;
+    my $loaded = $tmpl_class->load( $id )
+        or die "Error loading template ID $id: ".$tmpl_class->errstr;
+}
+
+sub compare_templates {
+    my (@tmpls) = @_;
+    subtest 'Comparing templates' => sub {
+        plan tests => 2 + (keys %tmpl_data);
+        isa_ok( $tmpls[0], $tmpl_class );
+        isa_ok( $tmpls[1], $tmpl_class );
+        is( $tmpls[0]->$_, $tmpls[1]->$_, "Template $_ comparison")
+            foreach keys %tmpl_data;
+    };
+}
+
+# my $tmpl = MT->model('template')->load(468);
+# $logger->debug('TMPL: ', l4mtdump($tmpl));
+# $tmpl->meta('parent', 401);
+# $tmpl->save;
+# my @entries = MT::Entry->load(undef, {
+#     'join' => MT::Comment->join_on( 'entry_id',
+#                 { blog_id => $blog_id },
+#                 { 'sort' => 'created_on',
+#                   direction => 'descend',
+#                   unique => 1,
+#                   limit => 10 } )
+# });
+# 
+# ok(1);
 
 
 

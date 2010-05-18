@@ -35,6 +35,9 @@ sub save_backup {
     my $ts      = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $ts[5] + 1900,
       $ts[4] + 1, @ts[ 3, 2, 1, 0 ];
     my $backup = $tmpl->clone;
+    # bless $backup, 'MT::Template';
+    # $backup->meta_obj->{pkg} = 'MT::Template';
+    # print STDERR 'Backup: '.Dumper($backup)."\n";
     delete $backup->{column_values}->{id}; # make sure we don't overwrite original
     delete $backup->{changed_cols}->{id};
     $backup->type('backup');
@@ -50,14 +53,37 @@ sub save_backup {
     $backup->identifier(undef);
     $backup->rebuild_me(0);
     $backup->build_dynamic(0);
-    $backup->meta('parent', $tmpl->id);
+    $backup->meta('parent' => $tmpl->id);
+    print STDERR 'Backup before save: '.Dumper($backup)."\n";
     $backup->save
         or die sprintf   'Could not save backup template "%s" '
                         .'(Blog: %s, Template: %s): %s',
                         $tmpl->name, $blog_id, $tmpl->id, $backup->errstr;
+    bless $backup, 'TemplateUpgrader::Template';
     return $backup;
 }
 
+sub meta {
+    my $self = shift;
+    my $metaobj_class = $self->meta_obj->{pkg};
+    bless $self, ( $self->meta_obj->{pkg} = 'MT::Template' );
+printf STDERR "PREMETA: Self: %s, meta: %s\n", ref($self), $self->meta_obj->{pkg};
+    my @return = $self->meta(@_);
+    bless $self, ( $self->meta_obj->{pkg} = $metaobj_class );
+printf STDERR "POSTMETA: Self: %s, meta: %s\n", ref($self), $self->meta_obj->{pkg};
+    @return;
+}
+
+sub save {
+    my $self = shift;
+    my $metaobj_class = $self->meta_obj->{pkg};
+    bless $self, ( $self->meta_obj->{pkg} = 'MT::Template' );
+printf STDERR "PRESAVE: Self: %s, meta: %s\n", ref($self), $self->meta_obj->{pkg};
+    my @return = $self->save(@_);
+    bless $self, ( $self->meta_obj->{pkg} = $metaobj_class );
+printf STDERR "POSTSAVE: Self: %s, meta: %s\n", ref($self), $self->meta_obj->{pkg};
+    @return;
+}
 # sub restore_backup {
 #     my $tmpl = shift;
 #     warn "Found incorrect package: ".ref($tmpl) unless $tmpl->isa(__PACKAGE__);
