@@ -208,7 +208,7 @@ my $new_t = '<mt:Entries chichi="Chester" category="Me AND You" lastn="10">My Ho
 $tmpl->text( $tmpl->reflow( $tokens ) );
 is( $tmpl->text, $new_t, 'Template text upgraded' );                       #26
 
-my $tokens = $tmpl->tokens;
+$tokens = $tmpl->tokens;
 # diag($_->dump_node()) foreach @$tokens;
 $node = $tokens->[0];
 

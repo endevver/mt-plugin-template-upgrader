@@ -203,12 +203,13 @@ sub nodeType {
 
 sub tagName {
     my $node = shift;
-    return unless ref($node) 
+    return $node unless ref($node) 
               and $node->isa('MT::Template::Node')
               and $node->nodeType != MT::Template::NODE_TEXT();
     if ( @_ ) {
         $node->[0] = shift;
         $node->[0] = $node->nodeName(); # For normalization
+        return $node;
     }
     return $node->[0];
 }

@@ -72,9 +72,6 @@ sub upgrade {
             $logger->info("Running code on node $node: ".$node->dump_node());
             
             $code->($node);
-            if ( my $name = $node->getAttribute('name') ) {
-                $node->prependAttribute( 'name', $name )
-            }
             $logger->debug('NODE DUMP: '.$node->dump_node(0,1,4));
         }
         $tmpl->text( $tmpl->reflow() );
