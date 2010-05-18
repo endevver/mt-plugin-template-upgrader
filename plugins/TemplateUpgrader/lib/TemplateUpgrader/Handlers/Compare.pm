@@ -47,15 +47,17 @@ sub operator { $operators{ lc($_[0]) } }
 sub reverse_tag { $reverse_tags{ lc($_[0]) } }
 
 sub hdlr_default {
-    my ($node, $newtag) = @_;
-    $newtag ||= 'If';
-    my $tag    = $node->tagName;    
+    my ($node, $newtag)  = @_;
+    my $tag              = $node->tagName;
+    my $tmpl             = $node->ownerDocument();
+    $tmpl->{reflow_flag} = 1;
     ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
     ##l4p $logger->debug('In handler for '.$tag);
     my @nodes = process_attributes( $node ) or return; # i.e. an error
-    $node->tagName( $newtag );
+
+    $node->tagName( lc($node->tagName) || 'if' );
     ##l4p $logger->debug('Leaving handler for '.$tag);
-    __PACKAGE__->report( @nodes > 1 ? [ @nodes ] : shift @nodes );
+    __PACKAGE__->report([ @nodes ])
 }
 
 sub process_attributes {
@@ -75,14 +77,14 @@ sub process_attributes {
 
     # PARSE ATTRIBUTE VALUES INTO ATTRIBUTE SETS
     my @attr_sets;
-    foreach my $val ( @{ $node->[4] } ) {
+    foreach my $a ( $node->attributes ) {
+        my $val = $_->[0];
         my $attr_set = parse_attr_value( $node, $val, $op );
         # The returned value should be a hash reference.  A number (probably
         # is an exceptional error condition that aborts our processing of
         # this tag.  The error has already been reported to the client.
         return if looks_like_number $attr_set; 
         push( @attr_sets, $attr_set  );
-        
     }
 
     # Possible combinations for attributes a & b between a tag (If tag="")
@@ -111,30 +113,24 @@ sub process_attributes {
             name => 'compare_val', 
             value => $attr_sets[0]{val} 
         };
-        my $prepend = $tmpl->createElement( 'var', $prepend_attr );
-        ##l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
+        my $prepend = $tmpl->createElement( 'var' )
+                           ->setAttribute( 'name', 'compare_val' )
+                           ->setAttribute( 'value', $attr_sets[0]{val} );
 
         my $inserted = $tmpl->insertBefore( $prepend, $node );
-        $prepend->prependAttribute( 'value', $attr_sets[0]{val} )
-                ->prependAttribute( 'name', 'compare_val' );
-        ##l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
 
         # The b attributes becomes an interpolated template variable
         # set by the setvar attribute of the prepended node above
         # $node->prependAttribute( 'name', $attr_sets[0]{val} );
-        $node->setAttribute( 'name', $attr_sets[0]{val} );
-        ##l4p $logger->debug('PROCATTR NODE: '. $prepend->dump_node());
+        $node->prependAttribute( 'name', $attr_sets[0]{val} );
 
         $attr_sets[0]{type} = 'var';
         $attr_sets[0]{val}  = 'compare_val';
         delete $attr_sets[0]{op};
+
         $attr_sets[1]{type} = 'val';
         $attr_sets[1]{op}   = $op;
         # $attr_sets[1]{val}  = '$compare_val'; # $ for variable interpolation
-        ##l4p $logger->debug('PROCATTR attr_sets: ', l4mtdump(@attr_sets));
-
-        # return __PACKAGE__->report_skipped($node, 'Skipping node. '.$node->tagName
-        #                     .' used two scalar values (no tag/variable)');
     }
 
 
@@ -144,11 +140,12 @@ sub process_attributes {
         and $attr_sets[1]{type} eq 'tag' ) {
         my $tok  = $attr_sets[1]{token};
         my $tag  = $tok->tagName;
+
         # We have to add a setvar assignment node for the 'b' case.
-        my $prepend_attr = { setvar => 'tag_mt'.lc($tag) };
-        my $prepend = $tmpl->createElement( lc($tag), $prepend_attr );
+        my $prepend = $tmpl->createElement( lc($tag) )
+                           ->setAttribute('setvar', 'tag_mt'.lc($tag));
         my $inserted = $tmpl->insertBefore( $prepend, $node );
-        $prepend->setAttribute('setvar', 'tag_mt'.lc($tag));
+
         # The b attributes becomes an interpolated template variable
         # set by the setvar attribute of the prepended node above
         $attr_sets[1]{type} = 'val';
@@ -187,7 +184,7 @@ sub process_attributes {
     ###l4p $logger->debug('@attr_sets: ', l4mtdump(\@attr_sets));
 
     # Remove all current attributes from the current node
-    $node->removeAttribute( $_ ) foreach grep { $_ ne '_attr_order' } keys %$node_attr;
+    $node->removeAttribute( $_ ) foreach keys %$node_attr;
 
     my $prepend;
     foreach my $set ( @attr_sets ) {
@@ -202,39 +199,28 @@ sub process_attributes {
         else {
             my $tok        = $set->{token};
             $logger->debug('TOKEE: '.$tok->dump_node());
-            my @tok_order = split(',', $tok->[1]{_attr_order}||'');
-             
             if ( keys %{ $tok->[1] } > 2 ) { # e.g. A modifier on GetVar 
                 
+                my @node_order = map { $_->[0] } $node->attributes;
+                my @tok_order = map { $_->[0] } $tok->attributes;
                 # We have to prepend a setvar assignment node to handle the
                 # of the tag/var attribute
-                my $prepend_attr = {
-                    (map { $_ => $tok->getAttribute($_)||'' } @tok_order),
-                };
-                $prepend_attr->{setvar}      = 'compare_val';
-                $prepend_attr->{_attr_order}
-                    = join(',',$tok->[1]{_attr_order},'setvar');
-                $prepend = $tmpl->createElement( 'var', $prepend_attr );
-                ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
+                $prepend = $tmpl->createElement( 'var' );
+                $prepend->setAttribute( $_, $tok->getAttribute($_) )
+                    foreach @tok_order;
+                $prepend->setAttribute( 'setvar' => 'compare_val' );
 
-                foreach my $k ( @tok_order, 'setvar' ) {
-                    $prepend->setAttribute( $k, $prepend_attr->{$k} );
-                    next if $k eq '_attr_order';
-                    push( @{$prepend->[4]}, [ $k, $prepend_attr->{$k} ])
-                }
                 my $inserted = $tmpl->insertBefore( $prepend, $node );
-                ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
 
-                # $node->setAttribute( 'tag', $tok->tagName )
-                #     if $set->{type} eq 'tag';
                 $node->setAttribute( 'name', 'compare_val' );
-                my @node_order = split(',', $node->[1]{_attr_order}||'');
                 $node->setAttribute( $_, $tok->getAttribute($_) )
                     foreach grep { $_ ne 'tag' and $_ ne 'name' } @node_order;
                 ###l4p $logger->debug('PROCATTR NODE: '. $node->dump_node());
                 
             }
             else {
+                my @node_order = map { $_->[0] } $node->attributes;
+                my @tok_order = map { $_->[0] } $tok->attributes;
                 $node->setAttribute( 'tag', $tok->tagName )
                     if $set->{type} eq 'tag';
                 $node->setAttribute( $_, $tok->getAttribute($_) )
