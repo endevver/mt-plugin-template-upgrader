@@ -37,7 +37,7 @@ sub save_backup {
     my $backup = $tmpl->clone;
     # bless $backup, 'MT::Template';
     # $backup->meta_obj->{pkg} = 'MT::Template';
-    # print STDERR 'Backup: '.Dumper($backup)."\n";
+    print STDERR 'Backup: '.Dumper($backup)."\n";
     delete $backup->{column_values}->{id}; # make sure we don't overwrite original
     delete $backup->{changed_cols}->{id};
     $backup->type('backup');
