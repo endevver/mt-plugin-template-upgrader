@@ -9,39 +9,11 @@ use base qw( TemplateUpgrader::Handlers );
 sub PLUGIN() { 'Core' }
 
 sub hdlr_else {
-    my $node    = shift;
-    $node->tagName( lc($node->tagName) );
-    # my $parent  = $node->parentNode()  if $node;
-    # my $content = $parent->nodeValue() if $parent;
-    # return unless defined $content;
-    my $tmpl = $node->ownerDocument();
-    
-    # $tmpl->text( $tmpl->reflow() );
+    my $node             = shift;
+    my $tmpl             = $node->ownerDocument();
     $tmpl->{reflow_flag} = 1;
-    ##l4p $logger->debug('REFLOWED TEXT: '.$tmpl->text());
+    $node->tagName( lc($node->tagName) );
     return __PACKAGE__->report([ $node ]);
-
-
-    # my $tmpl    = $node->ownerDocument();
-    # ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
-    # ##l4p $logger->debug("PRE ELSE CONTENT: $content");
-    # $content =~ s{<\s*/mt:?else\s*>}{}gi;
-    # ##l4p $logger->debug("POST ELSE CONTENT: $content");
-    # ##l4p $logger->debug('Nodes 0-4: ', l4mtdump([ map { $node->[$_] } 0..4 ]));
-
-    # my $builder = TemplateUpgrader::Builder->new();
-    # $parent->innerHTML( $builder->reflow( $node ) );
-
-    # $parent->[3] = $content;
-    # $tmpl->tokens();
-    # if ($tmpl) {
-    #     $tmpl->{reflow_flag} = 1;
-    #     $builder->reflow()
-    #     $tmpl->reflow();
-    # 
-    # }
-    # 
-    __PACKAGE__->report([ $node ]);
 }
 
 1;

@@ -4,7 +4,6 @@ package TemplateUpgrader::Test::Varz;
 use strict;
 use lib qw( plugins/TemplateUpgrader/t/lib );
 use base qw( TemplateUpgrader::Test );
-# use Test::More skip_all => 'Compare plugin caused problems';
 
 __PACKAGE__->run_data_tests();
 

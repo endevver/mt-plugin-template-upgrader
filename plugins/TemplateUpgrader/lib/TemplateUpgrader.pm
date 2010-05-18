@@ -38,37 +38,26 @@ sub upgrade {
     $handlers               ||= $self->handlers || $self->init_handlers();
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
-
     my $text_only = ! ref $tmpl;
     if ( $text_only ) {
-        ##l4p $logger->info('Got TEXT-ONLY template');
         $tmpl = $self->new_template(
             type => 'scalarref',
             source => ( ref $tmpl ? $tmpl : \$tmpl )
         );
-        ##l4p $logger->info('Got TEXT-ONLY template. Now '.ref($tmpl));
     }
     else {
         $tmpl = $tmpl_class->rebless( $tmpl );
         die "Now it's not an MT::Template subclass!"
             unless UNIVERSAL::isa($tmpl, 'MT::Template');
     }
-    ###l4p $logger->debug('Class of template to upgrade: '.ref($tmpl).($text_only ? ' (pseudo)' : ''));
-    ###l4p $logger->debug('Template text: ', $tmpl->text());
 
-
-    # $logger->debug('$handlers: ', l4mtdump($handlers));
-    # $logger->debug('$tmpl->tokens: ', l4mtdump($tmpl->tokens));
     my $tokens = $tmpl->tokens;
     my $text   = $tmpl->text;
     while ( my ( $tag, $code ) = each %$handlers ) {
         next if $tag eq 'plugin' and ref $code;
-        # $logger->debug("Handling tag: $tag with handler ".$code);
         $code = MT->handler_to_coderef( $code ); 
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
         foreach my $node ( @$nodes ) {
-            # $tmpl->{reflow_flag} = 1;
-            # $text = $tmpl->text;
             $logger->info("Running code on node $node: ".$node->dump_node());
             
             $code->($node);
@@ -76,23 +65,11 @@ sub upgrade {
         }
         $tmpl->text( $tmpl->reflow() );
         $tokens = $tmpl->tokens;
-        # $tmpl->{reflow_flag} = 1;
         $logger->debug('TEXT AFTER HANDLER "'.$tag.'": '
                         .( $text = $tmpl->text ));
-        # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
-        # $tmpl->reset_tokens();
     }
-    # $tmpl->{reflow_flag} = 1;    
     $text = $tmpl->text;
-
-    # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
-    # $tmpl->reset_tokens();
     $logger->debug('TEXT AFTER ALL HANDLERS: '.$text);
-    
-    # $tmpl->reflow( $tmpl->tokens() );
-    # $tmpl->text( MT->model('templateupgrader_builder')->reflow( $tmpl ) || '' );
-    # $tmpl->text( $text );
-
     return ($text_only ? $text : $tmpl);
 }
 

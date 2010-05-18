@@ -1,11 +1,11 @@
 package TemplateUpgrader::Builder;
 use strict; use warnings; use Carp; use Data::Dumper;
 
+use MT::Util qw( weaken );
+
 use base qw( MT::Builder );
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
-
-use MT::Util qw( weaken );
 
 sub NODE () { 'TemplateUpgrader::Template::Node' }
 
