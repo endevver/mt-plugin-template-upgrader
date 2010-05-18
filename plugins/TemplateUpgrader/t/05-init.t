@@ -2,43 +2,39 @@
 package TemplateUpgrader::Test::Init;
 use strict; use warnings; use Carp; use Data::Dumper;
 
+use Test::More tests => 6;
+
 my $app;
 BEGIN {
-    $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';    
-    use Test::More tests => 8;
-    # use lib qw( plugins/TemplateUpgrader/lib plugins/TemplateUpgrader/t/lib );
-    use lib qw( t/lib   plugins/TemplateUpgrader/lib
-                plugins/TemplateUpgrader/extlib 
-                plugins/TemplateUpgrader/t/lib
-                plugins/TemplateUpgrader/t/extlib
-                lib extlib );
-    
-    use_ok( 'TemplateUpgrader::Bootstrap' );                                #1
+    use lib qw( plugins/TemplateUpgrader/lib );
     use TemplateUpgrader::Bootstrap;
     $app = TemplateUpgrader::Bootstrap->app();
 }
 
-use_ok( 'TemplateUpgrader::Test' );                                         #2
-use base qw( TemplateUpgrader::Test );                                      
-use_ok( 'TemplateUpgrader' );                                               #3
-# use_ok( 'MT::Test' );                                                       #4
+use base qw( TemplateUpgrader::Test );
+use TemplateUpgrader;
+use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
+###l4p our $logger = MT::Log::Log4perl->new(); $logger->trace();
 
+### MT::App INITIALIZATION
+isa_ok($app, 'MT::App', 'MT is intialized');                                #1
 
-my $upgrader = TemplateUpgrader->new();
-is(ref $upgrader, 'TemplateUpgrader', 'Upgrader class initialized');        #4
-
-# my $app = MT->instance;
-isa_ok($app, 'MT::App', 'MT is intialized');                                #5
-
-
+### APP MODDELS
 is( $app->model('templateupgrader_template'),
     'TemplateUpgrader::Template',
-    'TemplateUpgrader::Template model');                                    #6
-
+    'TemplateUpgrader::Template model');                                    #2
 is( MT->model('templateupgrader_handlers'),
     'TemplateUpgrader::Handlers',
-    'TemplateUpgrader::Handlers model');                                    #7
-
+    'TemplateUpgrader::Handlers model');                                    #3
 is( MT->model('templateupgrader_builder'),
     'TemplateUpgrader::Builder',
-    'TemplateUpgrader::Builder model');                                     #8
+    'TemplateUpgrader::Builder model');                                     #4
+
+### UPGRADER INITIALIZATION
+my $upgrader = TemplateUpgrader->new();
+is(ref $upgrader, 'TemplateUpgrader', 'Upgrader class initialized');        #5
+
+### NEW TEMPLATE CREATION
+my $tmpl = $upgrader->new_template();
+isa_ok( $tmpl, 'TemplateUpgrader::Template' );                              #6
+

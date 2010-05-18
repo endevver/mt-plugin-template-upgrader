@@ -69,18 +69,22 @@ sub upgrade {
         foreach my $node ( @$nodes ) {
             # $tmpl->{reflow_flag} = 1;
             # $text = $tmpl->text;
+            $logger->info("Running code on node $node: ".$node->dump_node());
+            
             $code->($node);
             if ( my $name = $node->getAttribute('name') ) {
                 $node->prependAttribute( 'name', $name )
             }
             $logger->debug('NODE DUMP: '.$node->dump_node(0,1,4));
         }
+        $tmpl->text( $tmpl->reflow() );
+        $tokens = $tmpl->tokens;
         # $tmpl->{reflow_flag} = 1;
-        $logger->debug('TEXT AFTER HANDLER "'.$tag.'": '.( $text = $tmpl->text ));
+        $logger->debug('TEXT AFTER HANDLER "'.$tag.'": '
+                        .( $text = $tmpl->text ));
         # $tmpl->text( $tmpl->reflow( $tmpl->tokens ) );
         # $tmpl->reset_tokens();
     }
-    $tmpl->text( $tmpl->reflow( $tokens ) );
     # $tmpl->{reflow_flag} = 1;    
     $text = $tmpl->text;
 

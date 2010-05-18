@@ -17,10 +17,10 @@ __DATA__
                 "e" : "<mt:IfEmpty expr=\"[MTEntryComments]1[/MTEntryComments]\">Basta</mt:IfEmpty>"}, #1
 
 { "r" : "1",    "t" : "<MTIfEmpty tag=\"Date\">Nodate<MTElse>Yaydate</MTElse></MTIfEmpty>",
-                "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:Else>Yaydate</mt:Else></mt:if>"}, #2
+                "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:else>Yaydate</mt:if>"}, #2
 
 { "r" : "1",    "t" : "<MTIfEmpty tag=\"Date\">Nodate<mt:Else>Yaydate</MTIfEmpty>",
-                "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:Else>Yaydate</mt:Else></mt:if>"}, #3
+                "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:else>Yaydate</mt:if>"}, #3
 
 { "r" : "1",    "t" : "<MTIfNotEmpty tag=\"CGIPath\">yaycgipath</MTIfNotEmpty>",
                 "e" : "<mt:unless tag=\"CGIPath\" eq=\"\">yaycgipath</mt:unless>"}, #4

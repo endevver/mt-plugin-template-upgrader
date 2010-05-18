@@ -13,7 +13,7 @@ sub compile {
     my $build = shift;
     my($ctx, $text, $opt) = @_;
     my $tmpl;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ###l4p $logger ||= MT::Log::Log4perl->new(); #$logger->trace();
 
     $opt ||= { uncompiled => 1 };
     my $depth = $opt->{depth} ||= 0;

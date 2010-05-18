@@ -68,7 +68,7 @@ __DATA__
                        <mt:Include module=\"Form Field\" id=\"$custom_field_id\" class=\"\" label=\"$custom_field_name\">" }, #11
 
 { "r" : "1", "t" : "<mt:IfLoggedIn>YAY I AM LOGGED IN<mt:Else>BOO NO LOGIN FOR ME</mt:Else></mt:IfLoggedIn>",
-             "e" : "<mt:IfLoggedIn>YAY I AM LOGGED IN<mt:Else>BOO NO LOGIN FOR ME</mt:IfLoggedIn>" } #12
+             "e" : "<mt:IfLoggedIn>YAY I AM LOGGED IN<mt:else>BOO NO LOGIN FOR ME</mt:IfLoggedIn>" } #12
 
 ]
 

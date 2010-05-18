@@ -10,10 +10,12 @@ sub PLUGIN() { 'Core' }
 
 sub hdlr_else {
     my $node    = shift;
+    $node->tagName( lc($node->tagName) );
     # my $parent  = $node->parentNode()  if $node;
     # my $content = $parent->nodeValue() if $parent;
     # return unless defined $content;
     my $tmpl = $node->ownerDocument();
+    
     # $tmpl->text( $tmpl->reflow() );
     $tmpl->{reflow_flag} = 1;
     ##l4p $logger->debug('REFLOWED TEXT: '.$tmpl->text());

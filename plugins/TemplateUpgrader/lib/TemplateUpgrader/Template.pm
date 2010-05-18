@@ -117,7 +117,7 @@ sub reflow {
                 # container tag
                 ##l4p $logger->info('String before reflow contents: '.$str);
                 $str .= $tmpl->reflow( $token->[2] );
-                $str .= '</mt:' . $tag . '>';# unless $tag eq 'else';
+                $str .= '</mt:' . $tag . '>' unless lc($tag) eq 'else';
             }
         }
     }
@@ -186,7 +186,7 @@ sub NODE_FUNCTION () { 3 }
 
 sub dump_node {
     my $node     = shift;
-    my @elements = @_ || ( 0..4 );
+    my @elements = @_ || qw( 0 1 4 );
     return Dumper([ @{$node}[@elements] ]);
 }
 

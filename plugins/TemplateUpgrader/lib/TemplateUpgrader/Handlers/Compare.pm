@@ -75,8 +75,8 @@ sub process_attributes {
 
     # PARSE ATTRIBUTE VALUES INTO ATTRIBUTE SETS
     my @attr_sets;
-    foreach ( @{ $node->[4] } ) {
-        my $attr_set = parse_attr_value( $node, $_->[1], $op );
+    foreach my $val ( @{ $node->[4] } ) {
+        my $attr_set = parse_attr_value( $node, $val, $op );
         # The returned value should be a hash reference.  A number (probably
         # is an exceptional error condition that aborts our processing of
         # this tag.  The error has already been reported to the client.
@@ -107,20 +107,23 @@ sub process_attributes {
         and $attr_sets[1]{type} eq 'val' ) {
 
         # We have to add a setvar assignment node for the 'b' case.
-        my $prepend_attr = { name => 'compare_val', value => $attr_sets[0]{val} };
+        my $prepend_attr = { 
+            name => 'compare_val', 
+            value => $attr_sets[0]{val} 
+        };
         my $prepend = $tmpl->createElement( 'var', $prepend_attr );
-        ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
+        ##l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
 
         my $inserted = $tmpl->insertBefore( $prepend, $node );
-        $prepend->prependAttribute( 'value', $attr_sets[0]{val} );
-        $prepend->prependAttribute( 'name', 'compare_val' );
-        ###l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
+        $prepend->prependAttribute( 'value', $attr_sets[0]{val} )
+                ->prependAttribute( 'name', 'compare_val' );
+        ##l4p $logger->debug('PROCATTR PREPEND: '. $prepend->dump_node());
 
         # The b attributes becomes an interpolated template variable
         # set by the setvar attribute of the prepended node above
         # $node->prependAttribute( 'name', $attr_sets[0]{val} );
         $node->setAttribute( 'name', $attr_sets[0]{val} );
-        ###l4p $logger->debug('PROCATTR NODE: '. $prepend->dump_node());
+        ##l4p $logger->debug('PROCATTR NODE: '. $prepend->dump_node());
 
         $attr_sets[0]{type} = 'var';
         $attr_sets[0]{val}  = 'compare_val';
@@ -128,7 +131,7 @@ sub process_attributes {
         $attr_sets[1]{type} = 'val';
         $attr_sets[1]{op}   = $op;
         # $attr_sets[1]{val}  = '$compare_val'; # $ for variable interpolation
-        ###l4p $logger->debug('PROCATTR attr_sets: ', l4mtdump(@attr_sets));
+        ##l4p $logger->debug('PROCATTR attr_sets: ', l4mtdump(@attr_sets));
 
         # return __PACKAGE__->report_skipped($node, 'Skipping node. '.$node->tagName
         #                     .' used two scalar values (no tag/variable)');
@@ -424,6 +427,7 @@ sub parse_attr_value {
         };
     }
 
+    $logger->debug('attr_set: ', l4mtdump($attr_set));
     return $attr_set;
 }
 

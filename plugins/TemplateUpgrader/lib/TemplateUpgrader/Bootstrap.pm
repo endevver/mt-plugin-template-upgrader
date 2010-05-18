@@ -1,18 +1,23 @@
 package TemplateUpgrader::Bootstrap;
 use strict; use warnings; use Carp; use Data::Dumper;
 
+use Scalar::Util qw( blessed );
+use List::Util qw( first );
+use Hook::LexWrap;
+
 BEGIN {
     use base qw( Class::Accessor::Fast Class::Data::Inheritable );
     __PACKAGE__->mk_classdata(qw( bootstrapped ));
     __PACKAGE__->mk_classdata(qw( handlers ));
     __PACKAGE__->mk_classdata(qw( app ));
+    $ENV{MT_CONFIG} = $ENV{MT_HOME}.'/mt-config.cgi';
 }
 
-use Scalar::Util qw( blessed );
-use List::Util qw( first );
-use Hook::LexWrap;
-use lib qw( lib extlib );
-
+use lib qw( t/lib   plugins/TemplateUpgrader/lib
+            plugins/TemplateUpgrader/extlib 
+            plugins/TemplateUpgrader/t/lib
+            plugins/TemplateUpgrader/t/extlib
+            lib extlib );
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
