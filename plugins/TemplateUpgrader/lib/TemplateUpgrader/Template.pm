@@ -28,19 +28,19 @@ sub NODE_FUNCTION () { 3 }
 sub save_backup {
     my $tmpl = shift;
     warn "Found incorrect package: ".ref($tmpl) unless $tmpl->isa(__PACKAGE__);
-    my $blog = $tmpl->blog;
-    my $t = time;
-    my @ts = MT::Util::offset_time_list( $t, ( $blog ? $blog->id : undef ) );
-    my $ts = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $ts[5] + 1900,
+    my $blog    = $tmpl->blog;
+    my $blog_id = $blog ? $blog->id : 0;
+    my $t       = time;
+    my @ts      = MT::Util::offset_time_list( $t, ( $blog_id || undef ) );
+    my $ts      = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $ts[5] + 1900,
       $ts[4] + 1, @ts[ 3, 2, 1, 0 ];
     my $backup = $tmpl->clone;
     delete $backup->{column_values}->{id}; # make sure we don't overwrite original
     delete $backup->{changed_cols}->{id};
     $backup->type('backup');
     $backup->name(
-          sprintf("%s (TemplateUpgrader backup of ID %s) %s %s",
+          sprintf("%s (TemplateUpgrader backup) %s %s",
                 $backup->name,
-                $tmpl->id,
                 $tmpl->type,
                 $ts
           )
@@ -50,31 +50,59 @@ sub save_backup {
     $backup->identifier(undef);
     $backup->rebuild_me(0);
     $backup->build_dynamic(0);
-    $backup->meta('original_template', $tmpl->id);
+    $backup->meta('parent', $tmpl->id);
     $backup->save
         or die sprintf   'Could not save backup template "%s" '
                         .'(Blog: %s, Template: %s): %s',
-                        $tmpl->name, $blog->id, $tmpl->id, $backup->errstr;
+                        $tmpl->name, $blog_id, $tmpl->id, $backup->errstr;
     return $backup;
 }
 
-# sub compile {
+# sub restore_backup {
 #     my $tmpl = shift;
-#     die unless $tmpl->isa(__PACKAGE__);
-#     my $b = MT->model('templateupgrader_builder')->new();
-#     $b->compile($tmpl) or return $tmpl->error($b->errstr);
-#     return $tmpl->{__tokens};
-# }
-
-# sub tokens {
-#     my $tmpl = shift;
-#     die unless $tmpl->isa(__PACKAGE__);
-#     if (@_) {
-#         return bless $tmpl->{__tokens} = shift, 'MT::Template::Tokens';
-#     }
-#     my $t = $tmpl->{__tokens} || $tmpl->compile;
-#     return bless $t, 'MT::Template::Tokens' if $t;
-#     return undef;
+#     warn "Found incorrect package: ".ref($tmpl) unless $tmpl->isa(__PACKAGE__);
+#     my $blog    = $tmpl->blog;
+#     my $blog_id = $blog ? $blog->id : 0;
+#     my $backup = MT->model('template')->load({
+#         blog_id => $blog_id,
+#         template_id => 
+#     },
+#     {
+#         
+#     })
+#     
+#     my @backups = MT->model('template')->search_by_meta(
+#         'parent',
+#         $tmpl->id,
+#         [ \%terms [, \%args ]]
+#     );
+#     
+#     my $t = time;
+#     my @ts = MT::Util::offset_time_list( $t, ( $blog ? $blog->id : undef ) );
+#     my $ts = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $ts[5] + 1900,
+#       $ts[4] + 1, @ts[ 3, 2, 1, 0 ];
+#     my $backup = $tmpl->clone;
+#     delete $backup->{column_values}->{id}; # make sure we don't overwrite original
+#     delete $backup->{changed_cols}->{id};
+#     $backup->type('backup');
+#     $backup->name(
+#           sprintf("%s (TemplateUpgrader backup) %s %s",
+#                 $backup->name,
+#                 $tmpl->type,
+#                 $ts
+#           )
+#     );
+#     $backup->outfile('');
+#     $backup->linked_file( undef );
+#     $backup->identifier(undef);
+#     $backup->rebuild_me(0);
+#     $backup->build_dynamic(0);
+#     $backup->meta('parent', $tmpl->id);
+#     $backup->save
+#         or die sprintf   'Could not save backup template "%s" '
+#                         .'(Blog: %s, Template: %s): %s',
+#                         $tmpl->name, $blog->id, $tmpl->id, $backup->errstr;
+#     return $backup;
 # }
 
 sub reflow {
