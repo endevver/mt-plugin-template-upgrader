@@ -11,6 +11,8 @@ sub PLUGIN() { 'IfEmpty' }
 sub hdlr_default {
     my ($node) = @_;
     my $tag    = $node->tagName();
+    my $tmpl   = $node->ownerDocument();
+    $tmpl->{reflow_flag} = 1;
 
     # We don't handle the expr attribute because it would be hard to do well
     #    <MTIfEmpty expr="[MTEntryComments]1[/MTEntryComments]">
@@ -26,7 +28,8 @@ sub hdlr_default {
     $node->tagName( lc($tag) eq 'ifempty' ? 'If' : 'Unless' );
 
     # Rename attribute 'var' to 'tag' if it exists. If not, it's silent
-    $node->renameAttribute('var', 'tag');
+    $node->renameAttribute('var', 'tag')
+        if defined $node->getAttribute('var');
 
     # Add the eq="" attribute
     $node->appendAttribute( 'eq' => '');

@@ -75,8 +75,12 @@ sub restore_backup {
         direction => 'descend',
         limit     => 1,
     };
-    my ($backup)  = MT->model('template')->load( $terms, $args );
-    $backup or die "Could not find backup template with ".Dumper({terms => $terms, args => $args, errstr => MT->model('template')->errstr });
+    my ($backup)  = MT->model('template')->load( $terms, $args )
+        or die "Could not find backup template with "
+                .Dumper({   terms => $terms, 
+                            args => $args, 
+                            errstr => MT->model('template')->errstr 
+                        });
     $tmpl->text( $backup->text );
     $tmpl->save
         or die sprintf   'Could not save restored template "%s" '
@@ -100,7 +104,7 @@ sub reflow {
         if ($token->[0] eq 'TEXT') {
             $str .= $token->[1];
         } else {
-            my $tag = $token->[0];
+            my $tag = lc($token->[0]);
             $str .= '<mt:' . $tag;
             if (my $attrs = $token->[4]) {
                 foreach my $a (@$attrs) {
@@ -126,7 +130,7 @@ sub reflow {
                 # container tag
                 ##l4p $logger->debug('String before reflow contents: '.$str);
                 $str .= $tmpl->reflow( $token->[2] );
-                $str .= '</mt:' . $tag . '>' unless lc($tag) eq 'else';
+                $str .= '</mt:' . $tag . '>' unless $tag eq 'else';
             }
         }
     }
