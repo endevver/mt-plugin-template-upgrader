@@ -222,6 +222,8 @@ sub tagName {
     if ( @_ ) {
         $node->[0] = shift;
         $node->[0] = $node->nodeName(); # For normalization
+        ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+        ###l4p $logger->debug('tagName set to: '.$node->[0]);
         return $node;
     }
     return $node->[0];
@@ -250,6 +252,8 @@ sub setAttribute {
     }
     push( @{ $node->[4] }, [ $attr, $val ] )
         unless $found;
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ###l4p $logger->debug("Attribute '$attr' set to value '$val'");
     return $node;
 }
 
