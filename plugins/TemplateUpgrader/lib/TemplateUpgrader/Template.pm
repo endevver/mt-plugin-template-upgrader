@@ -128,7 +128,7 @@ sub reflow {
             $str .= '>';
             if ($token->[2]) {
                 # container tag
-                ##l4p $logger->debug('String before reflow contents: '.$str);
+                ###l4p $logger->debug('String before reflow contents: '.$str);
                 $str .= $tmpl->reflow( $token->[2] );
                 $str .= '</mt:' . $tag . '>' unless $tag eq 'else';
             }
