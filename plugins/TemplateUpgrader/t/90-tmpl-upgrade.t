@@ -29,28 +29,29 @@ my %tmpl_data = (
     blog_id => 1,
 );
 
-my $tmpl   = new_template( %tmpl_data );
-my $loaded = load_by_id( $tmpl->id );
-compare_templates( $tmpl, $loaded );
-my $backup = $loaded->save_backup();
+my ($tmpl, $loaded, $backup, $restored);
 
-subtest 'Backup template' => sub {
-    plan tests => 5;
-    my $backup_name = $tmpl_data{name}
-                    . '.*TemplateUpgrader backup Orig ID: '
-                    . $tmpl->id;
-    isa_ok( $backup, $tmpl_class );
-    isnt( $backup->id, $tmpl->id, 'Template ID' );
-    is( $backup->blog_id, $tmpl_data{blog_id}, 'Template blog_id' );
-    like( $backup->name, qr/$backup_name/, 'Template name' );
-    is( $backup->type, 'backup', 'Template type' );
-};
+$tmpl   = new_template( %tmpl_data );
+$loaded = load_by_id( $tmpl->id ) if $tmpl->id;
+if ( $loaded ) {
+    compare_templates( $tmpl, $loaded ) ;
+    $backup = $loaded->save_backup() if $loaded;
+    subtest 'Backup template' => sub {
+        plan tests => 5;
+        my $backup_name = $tmpl_data{name}
+                        . '.*TemplateUpgrader backup Orig ID: '
+                        . $tmpl->id;
+        isa_ok( $backup, $tmpl_class );
+        isnt( $backup->id, $tmpl->id, 'Template ID' );
+        is( $backup->blog_id, $tmpl_data{blog_id}, 'Template blog_id' );
+        like( $backup->name, qr/$backup_name/, 'Template name' );
+        is( $backup->type, 'backup', 'Template type' );
+    };
+    my $restored = $loaded->restore_backup();
+    compare_templates( $tmpl, $restored );
+}
 
-my $restored = $loaded->restore_backup();
-compare_templates( $tmpl, $restored );
-
-$tmpl->remove;
-$backup->remove;
+$_->remove if $_ and $_->id foreach $tmpl, $backup
 
 sub new_template {
     my %data = @_;
