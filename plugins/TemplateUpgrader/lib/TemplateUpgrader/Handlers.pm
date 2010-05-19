@@ -4,10 +4,12 @@ use strict; use warnings; use Carp; use Data::Dumper;
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new();
 
+sub PLUGIN() { 'Default' }
+
 sub default_hdlr {
     my ($self, $node, $params ) = @_;
     $node = [ $node ] unless ref $node eq 'ARRAY';
-    $self->_report({
+    $self->report({
         nodes => $node,
         skip  => 1, 
         %$params

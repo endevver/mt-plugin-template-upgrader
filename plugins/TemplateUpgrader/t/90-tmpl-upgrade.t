@@ -7,7 +7,7 @@ use Test::More qw( no_plan );
 my $app;
 BEGIN {
     use lib qw( plugins/TemplateUpgrader/lib );
-    use TemplateUpgrader::Bootstrap;
+    use TemplateUpgrader::Bootstrap qw( :app );
     $app = TemplateUpgrader::Bootstrap->app();
 }
 # use Test::Deep qw( eq_deeply );
@@ -35,15 +35,19 @@ compare_templates( $tmpl, $loaded );
 my $backup = $loaded->save_backup();
 
 subtest 'Backup template' => sub {
-    plan tests => 2 + (keys %tmpl_data);
+    plan tests => 5;
+    my $backup_name = $tmpl_data{name}
+                    . '.*TemplateUpgrader backup Orig ID: '
+                    . $tmpl->id;
     isa_ok( $backup, $tmpl_class );
     isnt( $backup->id, $tmpl->id, 'Template ID' );
     is( $backup->blog_id, $tmpl_data{blog_id}, 'Template blog_id' );
-    like( $backup->name, qr/$tmpl_data{name}/, 'Template name' );
+    like( $backup->name, qr/$backup_name/, 'Template name' );
     is( $backup->type, 'backup', 'Template type' );
-    is( $backup->meta('parent'), $tmpl->id, 'Parent template ID meta' );
 };
 
+my $restored = $loaded->restore_backup();
+compare_templates( $tmpl, $restored );
 
 sub new_template {
     my %data = @_;

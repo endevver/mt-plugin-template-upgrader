@@ -145,7 +145,7 @@ sub mode_default {
     my $app      = shift;
     my $blog     = $app->blog || $app->param('blog_id'); # Can be 0
     my $template = $app->param('template');
-    ##l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     require MT::Util::ReqTimer;
     $timer = MT::Util::ReqTimer->new( join('-', __PACKAGE__, $$) );
@@ -237,6 +237,8 @@ sub get_template_iter {
 sub upgrade_template {
     my $app     = shift;
     my $tmpl    = shift;
+    my $blog_id = eval { $tmpl->blog_id };
+    $blog_id  ||= 0;
     my $orig    = $tmpl->text || '';
     $handlers ||= $app->registry('tag_upgrade_handlers') || {};
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
@@ -290,7 +292,11 @@ sub upgrade_template {
         my $backup = $tmpl->save_backup();
 
         $tmpl->text( $new );
-        $tmpl->save;
+        $tmpl->linked_file('');
+        $tmpl->save
+            or die sprintf   'Could not save modified template "%s" '
+                            .'(Blog: %s, Template: %s): %s',
+                            $tmpl->name, $blog_id, $tmpl->id, $tmpl->errstr;
 
         my $msg = sprintf(
             '%-10d %-10s Template upgraded: %s',

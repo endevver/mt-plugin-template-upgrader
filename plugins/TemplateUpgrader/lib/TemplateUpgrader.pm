@@ -46,7 +46,7 @@ sub upgrade {
         );
     }
     else {
-        $tmpl = $tmpl_class->rebless( $tmpl );
+        $tmpl = TemplateUpgrader::Bootstrap->rebless( $tmpl );
         die "Now it's not an MT::Template subclass!"
             unless UNIVERSAL::isa($tmpl, 'MT::Template');
     }

@@ -35,15 +35,13 @@ sub save_backup {
     my $ts      = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $ts[5] + 1900,
       $ts[4] + 1, @ts[ 3, 2, 1, 0 ];
     my $backup = $tmpl->clone;
-    # bless $backup, 'MT::Template';
-    # $backup->meta_obj->{pkg} = 'MT::Template';
-    print STDERR 'Backup: '.Dumper($backup)."\n";
     delete $backup->{column_values}->{id}; # make sure we don't overwrite original
     delete $backup->{changed_cols}->{id};
     $backup->type('backup');
     $backup->name(
-          sprintf("%s (TemplateUpgrader backup) %s %s",
+          sprintf("%s (TemplateUpgrader backup Orig ID: %s) %s %s",
                 $backup->name,
+                $tmpl->id,
                 $tmpl->type,
                 $ts
           )
@@ -54,82 +52,39 @@ sub save_backup {
     $backup->rebuild_me(0);
     $backup->build_dynamic(0);
     $backup->meta('parent' => $tmpl->id);
-    print STDERR 'Backup before save: '.Dumper($backup)."\n";
     $backup->save
         or die sprintf   'Could not save backup template "%s" '
                         .'(Blog: %s, Template: %s): %s',
                         $tmpl->name, $blog_id, $tmpl->id, $backup->errstr;
-    bless $backup, 'TemplateUpgrader::Template';
     return $backup;
 }
 
-sub meta {
-    my $self = shift;
-    my $metaobj_class = $self->meta_obj->{pkg};
-    bless $self, ( $self->meta_obj->{pkg} = 'MT::Template' );
-printf STDERR "PREMETA: Self: %s, meta: %s\n", ref($self), $self->meta_obj->{pkg};
-    my @return = $self->meta(@_);
-    bless $self, ( $self->meta_obj->{pkg} = $metaobj_class );
-printf STDERR "POSTMETA: Self: %s, meta: %s\n", ref($self), $self->meta_obj->{pkg};
-    @return;
+sub restore_backup {
+    my $tmpl = shift;
+    warn "Found incorrect package: ".ref($tmpl) unless $tmpl->isa(__PACKAGE__);
+    my $blog_id = $tmpl->blog_id || 0;
+    my $terms = {
+        blog_id => $blog_id,
+        type    => 'backup',
+        name    => { 
+            like => '%TemplateUpgrader backup Orig ID: '.$tmpl->id.'%'
+        },
+    };
+    my $args = {
+        sort      => 'created_on',
+        direction => 'descend',
+        limit     => 1,
+    };
+    my ($backup)  = MT->model('template')->load( $terms, $args );
+    $backup or die "Could not find backup template with ".Dumper({terms => $terms, args => $args, errstr => MT->model('template')->errstr });
+    $tmpl->text( $backup->text );
+    $tmpl->save
+        or die sprintf   'Could not save restored template "%s" '
+                        .'(Blog: %s, Template: %s): %s',
+                        $tmpl->name, $blog_id, $tmpl->id, $tmpl->errstr;
+    $backup->remove;
+    return $tmpl;
 }
-
-sub save {
-    my $self = shift;
-    my $metaobj_class = $self->meta_obj->{pkg};
-    bless $self, ( $self->meta_obj->{pkg} = 'MT::Template' );
-printf STDERR "PRESAVE: Self: %s, meta: %s\n", ref($self), $self->meta_obj->{pkg};
-    my @return = $self->save(@_);
-    bless $self, ( $self->meta_obj->{pkg} = $metaobj_class );
-printf STDERR "POSTSAVE: Self: %s, meta: %s\n", ref($self), $self->meta_obj->{pkg};
-    @return;
-}
-# sub restore_backup {
-#     my $tmpl = shift;
-#     warn "Found incorrect package: ".ref($tmpl) unless $tmpl->isa(__PACKAGE__);
-#     my $blog    = $tmpl->blog;
-#     my $blog_id = $blog ? $blog->id : 0;
-#     my $backup = MT->model('template')->load({
-#         blog_id => $blog_id,
-#         template_id => 
-#     },
-#     {
-#         
-#     })
-#     
-#     my @backups = MT->model('template')->search_by_meta(
-#         'parent',
-#         $tmpl->id,
-#         [ \%terms [, \%args ]]
-#     );
-#     
-#     my $t = time;
-#     my @ts = MT::Util::offset_time_list( $t, ( $blog ? $blog->id : undef ) );
-#     my $ts = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $ts[5] + 1900,
-#       $ts[4] + 1, @ts[ 3, 2, 1, 0 ];
-#     my $backup = $tmpl->clone;
-#     delete $backup->{column_values}->{id}; # make sure we don't overwrite original
-#     delete $backup->{changed_cols}->{id};
-#     $backup->type('backup');
-#     $backup->name(
-#           sprintf("%s (TemplateUpgrader backup) %s %s",
-#                 $backup->name,
-#                 $tmpl->type,
-#                 $ts
-#           )
-#     );
-#     $backup->outfile('');
-#     $backup->linked_file( undef );
-#     $backup->identifier(undef);
-#     $backup->rebuild_me(0);
-#     $backup->build_dynamic(0);
-#     $backup->meta('parent', $tmpl->id);
-#     $backup->save
-#         or die sprintf   'Could not save backup template "%s" '
-#                         .'(Blog: %s, Template: %s): %s',
-#                         $tmpl->name, $blog->id, $tmpl->id, $backup->errstr;
-#     return $backup;
-# }
 
 sub reflow {
     my $tmpl       = shift;
@@ -169,13 +124,13 @@ sub reflow {
             $str .= '>';
             if ($token->[2]) {
                 # container tag
-                ##l4p $logger->info('String before reflow contents: '.$str);
+                ##l4p $logger->debug('String before reflow contents: '.$str);
                 $str .= $tmpl->reflow( $token->[2] );
                 $str .= '</mt:' . $tag . '>' unless lc($tag) eq 'else';
             }
         }
     }
-    ###l4p $logger->info('String at the end of reflow: '.$str);
+    ###l4p $logger->debug('String at the end of reflow: '.$str);
     return $str;
 }
 

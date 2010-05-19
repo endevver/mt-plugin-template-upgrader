@@ -28,8 +28,12 @@ BEGIN {
     foreach my $fn ( keys %dispatch ) {
         no strict 'refs';
         *{'hdlr_'.$fn} = sub {
-            $dispatch{$fn}->( @_ );
-            __PACKAGE__->report([ @_ ])
+            my $node             = shift;
+            my $tmpl             = $node->ownerDocument();
+            $tmpl->{reflow_flag} = 1;
+            $dispatch{$fn}->( $node, @_ );
+            $node->tagName( lc($node->tagName) );
+            __PACKAGE__->report([ $node ])
         }
     }
 }

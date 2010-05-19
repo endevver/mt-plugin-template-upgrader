@@ -7,7 +7,7 @@ use Test::More tests => 6;
 my $app;
 BEGIN {
     use lib qw( plugins/TemplateUpgrader/lib );
-    use TemplateUpgrader::Bootstrap;
+    use TemplateUpgrader::Bootstrap qw( :app );
     $app = TemplateUpgrader::Bootstrap->app();
 }
 
