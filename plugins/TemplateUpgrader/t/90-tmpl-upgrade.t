@@ -51,25 +51,25 @@ if ( $loaded ) {
     compare_templates( $tmpl, $restored );
 }
 
-$_->remove if $_ and $_->id foreach $tmpl, $backup
+$_ && $_->id && $_->remove foreach $tmpl, $backup;
 
 sub new_template {
     my %data = @_;
-    my $tmpl;
+    my $t;
     subtest 'New template' => sub {
         plan tests => 2;
-        $tmpl = new_ok( $tmpl_class => [], 'Template' );
-        $tmpl->set_values( \%tmpl_data );
-        my $rc = $tmpl->save()
-            or die "Error saving template: ".$tmpl->errstr;
-        ok( $rc, 'Template save'.($rc ? '' : " error: ".$tmpl->errstr ) );
+        $t = new_ok( $tmpl_class => [], 'Template' );
+        $t->set_values( \%tmpl_data );
+        my $rc = $t->save()
+            or die "Error saving template: ".$t->errstr;
+        ok( $rc, 'Template save'.($rc ? '' : " error: ".$t->errstr ) );
     };
-    return $tmpl;
+    return $t;
 }
 
 sub load_by_id {
     my $id     = shift;
-    my $loaded = $tmpl_class->load( $id )
+    $tmpl_class->load( $id )
         or die "Error loading template ID $id: ".$tmpl_class->errstr;
 }
 
