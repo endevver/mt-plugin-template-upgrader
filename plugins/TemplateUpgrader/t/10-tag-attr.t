@@ -204,7 +204,7 @@ is_deeply( [ $node->attributes ], $testnode,
 
 
 ### REFLOWING TEMPLATE TEXT
-my $new_t = '<mt:Entries chichi="Chester" category="Me AND You" lastn="10">My Hours are insane </mt:Entries>';
+my $new_t = '<mt:entries chichi="Chester" category="Me AND You" lastn="10">My Hours are insane </mt:entries>';
 $tmpl->text( $tmpl->reflow( $tokens ) );
 is( $tmpl->text, $new_t, 'Template text upgraded' );                       #26
 

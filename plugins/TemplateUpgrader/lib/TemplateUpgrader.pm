@@ -59,7 +59,6 @@ sub upgrade {
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
         foreach my $node ( @$nodes ) {
             $logger->info("Running code on node $node: ".$node->dump_node());
-            
             $code->($node);
             $logger->debug('NODE DUMP: '.$node->dump_node(0,1,4));
         }

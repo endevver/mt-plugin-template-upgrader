@@ -25,7 +25,7 @@ sub hdlr_default {
     }
 
     # IfEmpty -> If,  IfNotEmpty -> Unless
-    $node->tagName( lc($tag) eq 'ifempty' ? 'If' : 'Unless' );
+    $node->tagName( lc($tag) eq 'ifempty' ? 'if' : 'unless' );
 
     # Rename attribute 'var' to 'tag' if it exists. If not, it's silent
     $node->renameAttribute('var', 'tag')

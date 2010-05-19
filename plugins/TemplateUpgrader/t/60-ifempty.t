@@ -14,7 +14,7 @@ __DATA__
 
 [
 { "r" : "1",    "t" : "<MTIfEmpty expr=\"[MTEntryComments]1[/MTEntryComments]\">Basta</MTIfEmpty>",
-                "e" : "<mt:IfEmpty expr=\"[MTEntryComments]1[/MTEntryComments]\">Basta</mt:IfEmpty>"}, #1
+                "e" : "<mt:ifempty expr=\"[MTEntryComments]1[/MTEntryComments]\">Basta</mt:ifempty>"}, #1
 
 { "r" : "1",    "t" : "<MTIfEmpty tag=\"Date\">Nodate<MTElse>Yaydate</MTElse></MTIfEmpty>",
                 "e" : "<mt:if tag=\"Date\" eq=\"\">Nodate<mt:else>Yaydate</mt:if>"}, #2

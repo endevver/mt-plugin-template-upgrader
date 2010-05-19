@@ -32,43 +32,43 @@ __DATA__
              "e" : "<mt:blogname encode_html=\"1\">" }, #1
 
 { "r" : "1", "t" : "<mt:EntryTrackbackCount none=\"No TrackBacks\" plural=\"# TrackBacks\" singular=\"1 TrackBack\">",
-             "e" : "<mt:EntryTrackbackCount none=\"No TrackBacks\" plural=\"# TrackBacks\" singular=\"1 TrackBack\">" }, #2
+             "e" : "<mt:entrytrackbackcount none=\"No TrackBacks\" plural=\"# TrackBacks\" singular=\"1 TrackBack\">" }, #2
 
 { "r" : "1", "t" : "<mt:EntryTrackbackCount plural=\"# TrackBacks\" none=\"No TrackBacks\" singular=\"1 TrackBack\">",
-             "e" : "<mt:EntryTrackbackCount plural=\"# TrackBacks\" none=\"No TrackBacks\" singular=\"1 TrackBack\">" }, #3
+             "e" : "<mt:entrytrackbackcount plural=\"# TrackBacks\" none=\"No TrackBacks\" singular=\"1 TrackBack\">" }, #3
 
-{ "r" : "1", "t" : "<mt:Comments glue=\",\" sort_order=\"ascend\">",
-             "e" : "<mt:Comments glue=\",\" sort_order=\"ascend\">" }, #4
+{ "r" : "1", "t" : "<mt:Comments glue=\",\" sort_order=\"ascend\">This is a comment</mt:Comments>",
+             "e" : "<mt:comments glue=\",\" sort_order=\"ascend\">This is a comment</mt:comments>" }, #4
              
 { "r" : "1", "t" : "<form method=\"post\" action=\"<$mt:CGIPath$><$mt:CommunityScript$>\" name=\"entry_form\" id=\"create-entry-form\" enctype=\"multipart/form-data\">",
-             "e" : "<form method=\"post\" action=\"<mt:CGIPath><mt:CommunityScript>\" name=\"entry_form\" id=\"create-entry-form\" enctype=\"multipart/form-data\">" }, #5
+             "e" : "<form method=\"post\" action=\"<mt:cgipath><mt:communityscript>\" name=\"entry_form\" id=\"create-entry-form\" enctype=\"multipart/form-data\">" }, #5
              
 { "r" : "1", "t" : "<input type=\"hidden\" name=\"blog_id\" value=\"<$mt:BlogID$>\" />",
-             "e" : "<input type=\"hidden\" name=\"blog_id\" value=\"<mt:BlogID>\" />" }, #6
+             "e" : "<input type=\"hidden\" name=\"blog_id\" value=\"<mt:blogid>\" />" }, #6
              
 { "r" : "1", "t" : "<$mt:Include module=\"Form Field\" id=\"entry-title\" class=\"\" label=\"Title\"$>",
-             "e" : "<mt:Include module=\"Form Field\" id=\"entry-title\" class=\"\" label=\"Title\">" }, #7
+             "e" : "<mt:include module=\"Form Field\" id=\"entry-title\" class=\"\" label=\"Title\">" }, #7
              
 { "r" : "1", "t" : "<$mt:Include module=\"Form Field\" id=\"entry-body\" class=\"\" label=\"Body\"$>",
-             "e" : "<mt:Include module=\"Form Field\" id=\"entry-body\" class=\"\" label=\"Body\">" }, #8
+             "e" : "<mt:include module=\"Form Field\" id=\"entry-body\" class=\"\" label=\"Body\">" }, #8
              
 { "r" : "1", "t" : "<mt:SetVarBlock name=\"loop_to\"><$mt:Var name=\"__depth__\" _default=\"0\"$></mt:SetVarBlock><mt:SetVarBlock name=\"spacer\"><mt:For start=\"1\" end=\"$loop_to\">&nbsp;&nbsp;&nbsp;&nbsp;</mt:For></mt:SetVarBlock><option value=\"<$mt:CategoryID$>\"><$mt:Var name=\"spacer\"$><$mt:CategoryLabel$></option><$mt:SubCatsRecurse$>",
-             "e" : "<mt:SetVarBlock name=\"loop_to\"><mt:Var name=\"__depth__\" _default=\"0\"></mt:SetVarBlock><mt:SetVarBlock name=\"spacer\"><mt:For start=\"1\" end=\"$loop_to\">&nbsp;&nbsp;&nbsp;&nbsp;</mt:For></mt:SetVarBlock><option value=\"<mt:CategoryID>\"><mt:Var name=\"spacer\"><mt:CategoryLabel></option><mt:SubCatsRecurse>" }, #9
+             "e" : "<mt:setvarblock name=\"loop_to\"><mt:var name=\"__depth__\" _default=\"0\"></mt:setvarblock><mt:setvarblock name=\"spacer\"><mt:for start=\"1\" end=\"$loop_to\">&nbsp;&nbsp;&nbsp;&nbsp;</mt:for></mt:setvarblock><option value=\"<mt:categoryid>\"><mt:var name=\"spacer\"><mt:categorylabel></option><mt:subcatsrecurse>" }, #9
 
 { "r" : "1", "t" : "<$mt:Include module=\"Form Field\" id=\"entry-category\" class=\"\" label=\"Category\"$>",
-             "e" : "<mt:Include module=\"Form Field\" id=\"entry-category\" class=\"\" label=\"Category\">" }, #10
+             "e" : "<mt:include module=\"Form Field\" id=\"entry-category\" class=\"\" label=\"Category\">" }, #10
 
 { "r" : "1", "t" : "<mt:SetVarBlock name=\"custom_field_name\"><$mt:CustomFieldName$></mt:SetVarBlock>
                        <mt:SetVarBlock name=\"field-content\"><$mt:CustomFieldHTML$></mt:SetVarBlock>
                        <mt:SetVarBlock name=\"custom_field_id\">profile_<$mt:CustomFieldName dirify=\"1\"$></mt:SetVarBlock>
                        <$mt:Include module=\"Form Field\" id=\"$custom_field_id\" class=\"\" label=\"$custom_field_name\"$>",
-             "e" : "<mt:SetVarBlock name=\"custom_field_name\"><mt:CustomFieldName></mt:SetVarBlock>
-                       <mt:SetVarBlock name=\"field-content\"><mt:CustomFieldHTML></mt:SetVarBlock>
-                       <mt:SetVarBlock name=\"custom_field_id\">profile_<mt:CustomFieldName dirify=\"1\"></mt:SetVarBlock>
-                       <mt:Include module=\"Form Field\" id=\"$custom_field_id\" class=\"\" label=\"$custom_field_name\">" }, #11
+             "e" : "<mt:setvarblock name=\"custom_field_name\"><mt:customfieldname></mt:setvarblock>
+                       <mt:setvarblock name=\"field-content\"><mt:customfieldhtml></mt:setvarblock>
+                       <mt:setvarblock name=\"custom_field_id\">profile_<mt:customfieldname dirify=\"1\"></mt:setvarblock>
+                       <mt:include module=\"Form Field\" id=\"$custom_field_id\" class=\"\" label=\"$custom_field_name\">" }, #11
 
 { "r" : "1", "t" : "<mt:IfLoggedIn>YAY I AM LOGGED IN<mt:Else>BOO NO LOGIN FOR ME</mt:Else></mt:IfLoggedIn>",
-             "e" : "<mt:IfLoggedIn>YAY I AM LOGGED IN<mt:else>BOO NO LOGIN FOR ME</mt:IfLoggedIn>" } #12
+             "e" : "<mt:ifloggedin>YAY I AM LOGGED IN<mt:else>BOO NO LOGIN FOR ME</mt:ifloggedin>" } #12
 
 ]
 
