@@ -2,8 +2,8 @@
 package TemplateUpgrader::Test::Template::Upgrade;
 use strict; use warnings; use Carp; use Data::Dumper;
 
-# use Test::More tests => 1;
-use Test::More qw( no_plan );
+use Test::More tests => 4;
+# use Test::More qw( no_plan );
 my $app;
 BEGIN {
     use lib qw( plugins/TemplateUpgrader/lib );
@@ -48,6 +48,9 @@ subtest 'Backup template' => sub {
 
 my $restored = $loaded->restore_backup();
 compare_templates( $tmpl, $restored );
+
+$tmpl->remove;
+$backup->remove;
 
 sub new_template {
     my %data = @_;
