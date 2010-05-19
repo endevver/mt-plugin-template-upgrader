@@ -11,17 +11,17 @@ sub PLUGIN() { 'MT-Varz' }
 BEGIN {
 
     my %dispatch = (
-        get_var      => sub {   $_[0]->tagName('Var')               },
+        get_var      => sub {   $_[0]->tagName('var')               },
 
-        set_var      => sub {   $_[0]->tagName('Var')               },
+        set_var      => sub {   $_[0]->tagName('var')               },
 
-        if_one       => sub {   $_[0]->tagName('If')
+        if_one       => sub {   $_[0]->tagName('if')
                                      ->setAttribute('eq', 1)        },
 
-        unless_zero  => sub {   $_[0]->tagName('Unless')
+        unless_zero  => sub {   $_[0]->tagName('unless')
                                      ->setAttribute('eq', 0)        },
 
-        unless_empty => sub {   $_[0]->tagName('Unless')
+        unless_empty => sub {   $_[0]->tagName('unless')
                                      ->setAttribute('eq', '')       },
     );
 
