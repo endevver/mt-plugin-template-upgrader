@@ -60,6 +60,9 @@ sub report {
         }
         # And join each of the key=values by a space
         $tagattr .= '<mt:'.join( ' ', $tok->tagName, @keyvalues ).'>';
+        if ( $tok->nodeType == $tok->NODE_BLOCK ) {
+            $tagattr .= $tok->nodeValue.'</mt:'.$tok->tagName.'>';
+        }
     }
 
     # Create the reporting message
