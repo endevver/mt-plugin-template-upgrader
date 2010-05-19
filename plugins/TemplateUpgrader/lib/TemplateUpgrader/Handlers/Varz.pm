@@ -31,8 +31,7 @@ BEGIN {
             my $node             = shift;
             my $tmpl             = $node->ownerDocument();
             $tmpl->{reflow_flag} = 1;
-            $dispatch{$fn}->( $node, @_ );
-            $node->tagName( lc($node->tagName) );
+            $dispatch{$fn}->( $node );
             __PACKAGE__->report([ $node ])
         }
     }
