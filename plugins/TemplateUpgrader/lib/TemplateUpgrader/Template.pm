@@ -104,7 +104,7 @@ sub reflow {
         if ($token->[0] eq 'TEXT') {
             $str .= $token->[1];
         } else {
-            my $tag = lc($token->[0]);
+            my $tag = $token->nodeName();
             $str .= '<mt:' . $tag;
             if (my $attrs = $token->[4]) {
                 foreach my $a (@$attrs) {
@@ -128,9 +128,10 @@ sub reflow {
             $str .= '>';
             if ($token->[2]) {
                 # container tag
-                ###l4p $logger->debug('String before reflow contents: '.$str);
+                ###l4p $logger->debug('Container tag. Reflowing contents.');
                 $str .= $tmpl->reflow( $token->[2] );
                 $str .= '</mt:' . $tag . '>' unless $tag eq 'else';
+                ###l4p $logger->debug('Container tag contents reflowed and end tag added: '.$str);
             }
         }
     }
