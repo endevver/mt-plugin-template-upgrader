@@ -58,8 +58,9 @@ sub upgrade {
         $code = MT->handler_to_coderef( $code ); 
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
         foreach my $node ( @$nodes ) {
-            $logger->info("Running code on node $node: ".$node->dump_node());
-            $code->($node);
+            if ( $code->($node) ) {
+                $logger->info("Original node $node: ".$node->dump_node());
+            }
             $logger->debug('NODE DUMP: '.$node->dump_node(0,1,4));
         }
         $tmpl->text( $tmpl->reflow() );
