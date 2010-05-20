@@ -2,7 +2,7 @@
 package TemplateUpgrader::Test::Template::Upgrade;
 use strict; use warnings; use Carp; use Data::Dumper;
 
-use Test::More tests => 4;
+use Test::More tests => 8;
 # use Test::More qw( no_plan );
 my $app;
 BEGIN {
@@ -19,6 +19,7 @@ use base qw( TemplateUpgrader::Test );
 use TemplateUpgrader;
 use MT::Log::Log4perl qw(l4mtdump); use Log::Log4perl qw( :resurrect );
 ###l4p our $logger = MT::Log::Log4perl->new(); $logger->trace();
+
 my $tmpl_class = MT->model('templateupgrader_template');
 use TemplateUpgrader::Template;
 
@@ -31,46 +32,79 @@ my %tmpl_data = (
 
 my ($tmpl, $loaded, $backup, $restored);
 
-$tmpl   = new_template( %tmpl_data );
-$loaded = load_by_id( $tmpl->id ) if $tmpl->id;
-if ( $loaded ) {
-    compare_templates( $tmpl, $loaded ) ;
-    $backup = $loaded->save_backup() if $loaded;
-    subtest 'Backup template' => sub {
-        plan tests => 5;
-        my $backup_name = $tmpl_data{name}
-                        . '.*TemplateUpgrader backup Orig ID: '
-                        . $tmpl->id;
-        isa_ok( $backup, $tmpl_class );
-        isnt( $backup->id, $tmpl->id, 'Template ID' );
-        is( $backup->blog_id, $tmpl_data{blog_id}, 'Template blog_id' );
-        like( $backup->name, qr/$backup_name/, 'Template name' );
-        is( $backup->type, 'backup', 'Template type' );
-    };
-    my $restored = $loaded->restore_backup();
-    compare_templates( $tmpl, $restored );
-}
+$tmpl   = new_template( %tmpl_data );                                       #1
 
-$_ && $_->id && $_->remove foreach $tmpl, $backup;
+SKIP: {
+    skip "Template could not be saved", 7 unless $tmpl->id;
+
+    $loaded = load_by_id( $tmpl->id );                                      #2
+    
+    SKIP: {
+        skip "Template not loaded", 6
+            unless $loaded and $loaded->id;
+
+        compare_templates( $tmpl, $loaded );                                #3
+
+        $backup = $loaded->save_backup();
+
+        subtest 'Backup template' => sub {                                  #4
+            plan tests => 5;
+            my $backup_name = $tmpl_data{name}
+                            . '.*TemplateUpgrader backup Orig ID: '
+                            . $tmpl->id;
+            isa_ok( $backup, $tmpl_class );
+            isnt( $backup->id, $tmpl->id, 'New template ID' );
+            is( $backup->blog_id, $tmpl_data{blog_id}, 'Template blog_id' );
+            like( $backup->name, qr/$backup_name/, 'Template name' );
+            is( $backup->type, 'backup', 'Template type' );
+        };
+
+        SKIP: {
+            skip "Template backup not created", 4
+                unless $backup and $backup->id;
+                
+            my $new_text = 'This is some new text';
+            $tmpl->text( $new_text );
+            ok( $tmpl->save, 'Modified template save' );                    #5
+
+            $loaded = load_by_id( $tmpl->id );                              #6
+            is( $loaded->text, $new_text, 'Modified new text' );            #7
+            
+            $restored = $tmpl->restore_backup();
+            compare_templates( $tmpl, $restored );                          #8
+        }
+    }
+
+    $_ && $_->id && $_->remove foreach $tmpl, $backup;
+};
+
+
+
 
 sub new_template {
     my %data = @_;
     my $t;
     subtest 'New template' => sub {
         plan tests => 2;
-        $t = new_ok( $tmpl_class => [], 'Template' );
+        $t = new_ok( $tmpl_class => [], $tmpl_class );
         $t->set_values( \%tmpl_data );
-        my $rc = $t->save()
-            or die "Error saving template: ".$t->errstr;
-        ok( $rc, 'Template save'.($rc ? '' : " error: ".$t->errstr ) );
+        ok( $t->save(), 'Template save' );
+        $t->errstr and diag( 'Error: '.$t->errstr );
     };
     return $t;
 }
 
 sub load_by_id {
     my $id     = shift;
-    $tmpl_class->load( $id )
-        or die "Error loading template ID $id: ".$tmpl_class->errstr;
+    my $t;
+    subtest 'Template load' => sub {
+        plan tests => 2;
+        $t = $tmpl_class->load( $id );
+        isa_ok( $t, $tmpl_class );
+        $t->errstr and diag( 'Error: '.$t->errstr );
+        is( $t->id, $id, 'Template ID' );
+    };
+    return $t;
 }
 
 sub compare_templates {
@@ -79,28 +113,10 @@ sub compare_templates {
         plan tests => 2 + (keys %tmpl_data);
         isa_ok( $tmpls[0], $tmpl_class );
         isa_ok( $tmpls[1], $tmpl_class );
-        is( $tmpls[0]->$_, $tmpls[1]->$_, "Template $_ comparison")
+        is( $tmpls[1]->$_, $tmpls[0]->$_, "Template $_ comparison")
             foreach keys %tmpl_data;
     };
 }
-
-# my $tmpl = MT->model('template')->load(468);
-# $logger->debug('TMPL: ', l4mtdump($tmpl));
-# $tmpl->meta('parent', 401);
-# $tmpl->save;
-# my @entries = MT::Entry->load(undef, {
-#     'join' => MT::Comment->join_on( 'entry_id',
-#                 { blog_id => $blog_id },
-#                 { 'sort' => 'created_on',
-#                   direction => 'descend',
-#                   unique => 1,
-#                   limit => 10 } )
-# });
-# 
-# ok(1);
-
-
-
 
 # 
 # use strict;
