@@ -58,8 +58,12 @@ sub upgrade {
         $code = MT->handler_to_coderef( $code ); 
         my $nodes = $tmpl->getElementsByTagName( lc($tag) ) || [];
         foreach my $node ( @$nodes ) {
+            my $orig_node_dump = $node->dump_node();
+            (my $orig_node_text = MT::Template::reflow( $tmpl, [ $node ] ))
+                =~ s{\n}{\\n}g;
             if ( $code->($node) ) {
-                $logger->info("Original node $node: ".$node->dump_node());
+                $logger->info("  Original node text: ".$orig_node_text);
+                $logger->info("  Original node compiled: ".$orig_node_dump);
             }
             $logger->debug('NODE DUMP: '.$node->dump_node(0,1,4));
         }

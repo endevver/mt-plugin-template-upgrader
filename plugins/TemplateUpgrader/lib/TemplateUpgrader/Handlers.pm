@@ -57,14 +57,10 @@ sub report {
         # And join each of the key=values by a space
         $tagattr .= '<mt:'.join( ' ', $tok->tagName, @keyvalues ).'>';
         if ( $tok->nodeType == $tok->NODE_BLOCK ) {
-            if ( $tok->tagName eq 'else' ) {
-                ( my $content = $tok->nodeValue )
-                    =~ s{\A\s*(\S.*?)\n.*}{$1 [SNIP one-line]}gsm;
-                $tagattr .= $content;
-            }
-            else {
-                $tagattr .= $tok->nodeValue.'</mt:'.$tok->tagName.'>';
-            }
+            ( my $content = $tok->nodeValue ) =~ s{\n}{\\n}gsm;
+            $tagattr .= $content;
+            $tagattr .= '</mt:'.$tok->tagName.'>'
+                if $tok->tagName ne 'else';
         }
     }
 
