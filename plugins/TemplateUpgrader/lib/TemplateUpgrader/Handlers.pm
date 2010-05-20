@@ -9,9 +9,8 @@ sub PLUGIN() { 'Default' }
 sub default_hdlr {
     my ($self, $node, $params ) = @_;
     $node = [ $node ] unless ref $node eq 'ARRAY';
-    $self->report({
+    $self->report_skipped({
         nodes => $node,
-        skip  => 1, 
         %$params
     });
 }
@@ -61,7 +60,14 @@ sub report {
         # And join each of the key=values by a space
         $tagattr .= '<mt:'.join( ' ', $tok->tagName, @keyvalues ).'>';
         if ( $tok->nodeType == $tok->NODE_BLOCK ) {
-            $tagattr .= $tok->nodeValue.'</mt:'.$tok->tagName.'>';
+            if ( $tok->tagName eq 'else' ) {
+                ( my $content = $tok->nodeValue )
+                    =~ s{\A\s*(\S.*?)\n.*}{$1 [SNIP one-line]}gsm;
+                $tagattr .= $content;
+            }
+            else {
+                $tagattr .= $tok->nodeValue.'</mt:'.$tok->tagName.'>';
+            }
         }
     }
 
