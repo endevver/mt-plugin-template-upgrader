@@ -9,7 +9,7 @@ sub PLUGIN() { 'Default' }
 sub default_hdlr {
     my ($self, $node, $params ) = @_;
     $node = [ $node ] unless ref $node eq 'ARRAY';
-    $self->report_skipped([ $node ]);
+    $self->report_skipped( $node );
 }
 
 sub report {
@@ -88,8 +88,6 @@ sub report_skipped {
         message => ( $message||'' ),
     });
 }
-
-
 
 1;
 
